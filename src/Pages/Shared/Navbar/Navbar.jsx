@@ -1,9 +1,21 @@
 import React from 'react';
+import { NavLink } from 'react-router';
+import logo from '../../../assets/icons8-wisdom-66.png'
 
 const Navbar = () => {
+
+    const links = <>
+    <li><NavLink>Home</NavLink></li>
+    <li><NavLink>Add Lesson</NavLink></li>
+    <li><NavLink>My Lessons</NavLink></li>
+    <li><NavLink>Public Lessons</NavLink></li>
+    <li><NavLink>Pricing</NavLink></li>
+    {/* <li><NavLink></NavLink></li> */}
+    </>
+
     return (
-        <div>
-            <div className="navbar bg-base-100 shadow-sm">
+        <div className='sticky top-0 z-50'>
+            <div className="navbar bg-base-100 shadow-sm  backdrop-blur-sm">
                 <div className="navbar-start">
                     <div className="dropdown">
                         <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
@@ -12,36 +24,19 @@ const Navbar = () => {
                         <ul
                             tabIndex="-1"
                             className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
-                            <li><a>Item 1</a></li>
-                            <li>
-                                <a>Parent</a>
-                                <ul className="p-2">
-                                    <li><a>Submenu 1</a></li>
-                                    <li><a>Submenu 2</a></li>
-                                </ul>
-                            </li>
-                            <li><a>Item 3</a></li>
+                            {links}
                         </ul>
                     </div>
-                    <a className="btn btn-ghost text-xl">daisyUI</a>
+                    <div><img src={logo} alt="" /></div>
+                    <a className="text-2xl font-bold">Mentry</a>
                 </div>
                 <div className="navbar-center hidden lg:flex">
                     <ul className="menu menu-horizontal px-1">
-                        <li><a>Item 1</a></li>
-                        <li>
-                            <details>
-                                <summary>Parent</summary>
-                                <ul className="p-2 bg-base-100 w-40 z-1">
-                                    <li><a>Submenu 1</a></li>
-                                    <li><a>Submenu 2</a></li>
-                                </ul>
-                            </details>
-                        </li>
-                        <li><a>Item 3</a></li>
+                        {links}
                     </ul>
                 </div>
                 <div className="navbar-end">
-                    <a className="btn">Button</a>
+                    <a className="btn">Login</a>
                 </div>
                 {/* Dropdown */}
                 <div className="dropdown dropdown-end">
@@ -61,7 +56,7 @@ const Navbar = () => {
                                 <span className="badge">New</span>
                             </a>
                         </li>
-                        <li><a>Settings</a></li>
+                        <li><a>Dashboard</a></li>
                         <li><a>Logout</a></li>
                     </ul>
                 </div>
