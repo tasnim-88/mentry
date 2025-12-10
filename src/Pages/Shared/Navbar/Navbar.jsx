@@ -24,7 +24,7 @@ const Navbar = () => {
         <li><NavLink>Home</NavLink></li>
         <li><NavLink>Add Lesson</NavLink></li>
         <li><NavLink>My Lessons</NavLink></li>
-        <li><NavLink>Public Lessons</NavLink></li>
+        <li><NavLink to={'/publiclessons'}>Public Lessons</NavLink></li>
         <li><NavLink>Pricing</NavLink></li>
         {/* <li><NavLink></NavLink></li> */}
     </>

@@ -4,6 +4,8 @@ import Home from "../Pages/Home/Home/Home";
 import AuthLayout from "../Layouts/AuthLayout";
 import Login from "../Pages/Auth/Login/Login";
 import Register from "../Pages/Auth/Register/Register";
+import PublicLessons from "../Pages/PublicLessons/PublicLessons";
+import LessonDetails from "../Pages/LessonDetails/LessonDetails";
 
 export const router = createBrowserRouter([
     {
@@ -11,6 +13,8 @@ export const router = createBrowserRouter([
         Component: RootLayout,
         children: [
             { index: true, Component: Home },
+            {path: '/publiclessons', Component: PublicLessons},
+            {path: '/lessondetails', Component: LessonDetails},
         ]
     },
     {
