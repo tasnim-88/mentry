@@ -6,10 +6,7 @@ const Banner = () => {
             <section className="py-10 sm:py-16 lg:py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="group relative rounded-xl overflow-hidden">
-                        <div
-                            className="flex min-h-[480px] flex-col gap-8 items-center justify-center p-8 text-center bg-cover bg-center bg-no-repeat"
-                            style={{ backgroundImage: 'linear-gradient(rgba(16, 34, 24, 0.7) 0%, rgba(16, 34, 24, 0.9) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBFY88oh_pof11XDxXx8l2eakzAmOLHeRVKvMF3kYNZ5BKkDDTAvxzDBcD8EkLKYmLDgKBeeHWbTPhC3sCxbDk9AF8lQoAHOB4oPf_iMNcwCUkeOTbPfT3aixH_KwYjRNBNtRfqJwDXyIoHConEQl10YN56EAb7G8c2Ndq8X_-rxACCt7Fe0MAmZRSP_PlcHeo4uXVmIy8r2YL2d54i3nrr3KnMPCXUOWvu8BVqeSlUP-QGMBm0lOaqdwpTCPJ1uZYio-16xGtd2BA")' }}
-                        >
+                        <div className="flex min-h-[480px] flex-col gap-8 items-center justify-center p-8 text-center bg-cover bg-center bg-no-repeat bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFY88oh_pof11XDxXx8l2eakzAmOLHeRVKvMF3kYNZ5BKkDDTAvxzDBcD8EkLKYmLDgKBeeHWbTPhC3sCxbDk9AF8lQoAHOB4oPf_iMNcwCUkeOTbPfT3aixH_KwYjRNBNtRfqJwDXyIoHConEQl10YN56EAb7G8c2Ndq8X_-rxACCt7Fe0MAmZRSP_PlcHeo4uXVmIy8r2YL2d54i3nrr3KnMPCXUOWvu8BVqeSlUP-QGMBm0lOaqdwpTCPJ1uZYio-16xGtd2BA')]" data-alt="Abstract background image with green and dark tones representing digital wisdom" >
                             <div className="flex flex-col gap-4 max-w-3xl">
                                 <h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em] sm:text-5xl md:text-6xl">
                                     Your Life, Your Lessons. Preserve Them Forever.

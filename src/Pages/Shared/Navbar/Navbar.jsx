@@ -1,16 +1,32 @@
-import React from 'react';
-import { NavLink } from 'react-router';
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink } from 'react-router';
 import logo from '../../../assets/icons8-wisdom-66.png'
 
 const Navbar = () => {
 
+    const [theme, setTheme] = useState(() => {
+        const savedTheme = localStorage.getItem("theme") || "light";
+        document.querySelector("html").setAttribute("data-theme", savedTheme);
+        return savedTheme;
+    });
+
+    useEffect(() => {
+        localStorage.setItem("theme", theme);
+        document.querySelector("html").setAttribute("data-theme", theme);
+    }, [theme]);
+
+
+    const handleTheme = (checked) => {
+        setTheme(checked ? "dark" : "light");
+    };
+
     const links = <>
-    <li><NavLink>Home</NavLink></li>
-    <li><NavLink>Add Lesson</NavLink></li>
-    <li><NavLink>My Lessons</NavLink></li>
-    <li><NavLink>Public Lessons</NavLink></li>
-    <li><NavLink>Pricing</NavLink></li>
-    {/* <li><NavLink></NavLink></li> */}
+        <li><NavLink>Home</NavLink></li>
+        <li><NavLink>Add Lesson</NavLink></li>
+        <li><NavLink>My Lessons</NavLink></li>
+        <li><NavLink>Public Lessons</NavLink></li>
+        <li><NavLink>Pricing</NavLink></li>
+        {/* <li><NavLink></NavLink></li> */}
     </>
 
     return (
@@ -36,8 +52,13 @@ const Navbar = () => {
                     </ul>
                 </div>
                 <div className="navbar-end">
-                    <a className="btn">Login</a>
+                    <Link to={'/login'} className="btn">Login</Link>
                 </div>
+                <input
+                    onChange={(e) => handleTheme(e.target.checked)}
+                    type="checkbox"
+                    defaultChecked={localStorage.getItem('theme') === "dark"}
+                    className="toggle" />
                 {/* Dropdown */}
                 <div className="dropdown dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
