@@ -5,6 +5,7 @@ import {
     MdEdit,
     MdDelete,
 } from "react-icons/md";
+import { Link } from "react-router";
 
 const MyLessons = () => {
     return (
@@ -61,9 +62,9 @@ const MyLessons = () => {
                                         <button className="btn btn-ghost btn-xs">
                                             <MdVisibility className="text-lg" />
                                         </button>
-                                        <button className="btn btn-ghost btn-xs">
+                                        <Link to={'/updatelesson'} className="btn btn-ghost btn-xs">
                                             <MdEdit className="text-lg" />
-                                        </button>
+                                        </Link>
                                         <button className="btn btn-ghost btn-xs text-red-500">
                                             <MdDelete className="text-lg" />
                                         </button>

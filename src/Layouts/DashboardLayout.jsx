@@ -6,8 +6,9 @@ import { PiStudentBold } from 'react-icons/pi';
 import { FiHome } from 'react-icons/fi';
 import { IoSettingsOutline } from 'react-icons/io5';
 import logoImg from '../assets/icons8-wisdom-66.png'
-import { MdOutlineFavorite } from 'react-icons/md';
+import { MdOutlineFavorite, MdReport } from 'react-icons/md';
 import { HiUsers } from 'react-icons/hi';
+import { RiAdminFill } from 'react-icons/ri';
 
 const DashboardLayout = () => {
     return (
@@ -58,13 +59,18 @@ const DashboardLayout = () => {
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Lessons" to={'/dashboard/admin/managelessons'}>
-                                    <HiUsers size={20}/>
+                                    <ImBook size={20}/>
                                     <span className="is-drawer-close:hidden">Manage Lessons</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Reported Lessons" to={'/dashboard/admin/reportedlessons'}>
-                                    <HiUsers size={20}/>
+                                    <MdReport size={20}/>
                                     <span className="is-drawer-close:hidden">Reported Lessons</span></NavLink>
+                            </li>
+                            <li>
+                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Admin Profile" to={'/dashboard/admin/adminprofile'}>
+                                    <RiAdminFill size={20}/>
+                                    <span className="is-drawer-close:hidden">Admin Profile</span></NavLink>
                             </li>
 
                             {/* User links */}

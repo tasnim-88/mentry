@@ -6,8 +6,8 @@ import Login from "../Pages/Auth/Login/Login";
 import Register from "../Pages/Auth/Register/Register";
 import PublicLessons from "../Pages/PublicLessons/PublicLessons";
 import LessonDetails from "../Pages/LessonDetails/LessonDetails";
-import AddLesson from "../Pages/Dashboard/AddLesson/AddLesson";
-import MyLessons from "../Pages/Dashboard/MyLessons/MyLessons";
+import AddLesson from "../Pages/Dashboard/User/AddLesson";
+import MyLessons from "../Pages/Dashboard/User/MyLessons";
 import Pricing from "../Pages/Pricing/Pricing";
 import DashboardLayout from "../Layouts/DashboardLayout";
 import AdminDashboard from "../Pages/Dashboard/DashboardHome/AdminDashboard";
@@ -17,6 +17,8 @@ import UserProfile from "../Pages/Dashboard/User/UserProfile";
 import ManageUsers from "../Pages/Dashboard/Admin/ManageUsers";
 import ManageLessons from "../Pages/Dashboard/Admin/ManageLessons";
 import ReportedLessons from "../Pages/Dashboard/Admin/ReportedLessons";
+import AdminProfile from "../Pages/Dashboard/Admin/AdminProfile";
+import UpdateLesson from "../Pages/Dashboard/User/UpdateLesson";
 
 export const router = createBrowserRouter([
     {
@@ -24,27 +26,32 @@ export const router = createBrowserRouter([
         Component: RootLayout,
         children: [
             { index: true, Component: Home },
-            {path: '/publiclessons', Component: PublicLessons},
-            {path: '/lessondetails', Component: LessonDetails},
-            {path: '/pricing', Component: Pricing},
+            { path: '/publiclessons', Component: PublicLessons },
+            { path: '/lessondetails', Component: LessonDetails },
+            { path: '/pricing', Component: Pricing },
+            {
+                path: 'updatelesson', Component: UpdateLesson
+            },
         ]
     },
     {
         path: '/dashboard',
         Component: DashboardLayout,
-        children:[
-            {index: true, Component: DashboardHome},
+        children: [
+            { index: true, Component: DashboardHome },
             // Admin routes
-            {path: 'admin/manageusers', Component: ManageUsers},
-            {path: 'admin/managelessons', Component: ManageLessons},
-            {path: 'admin/reportedlessons', Component: ReportedLessons},
+            { path: 'admin/manageusers', Component: ManageUsers },
+            { path: 'admin/managelessons', Component: ManageLessons },
+            { path: 'admin/reportedlessons', Component: ReportedLessons },
+            { path: 'admin/adminprofile', Component: AdminProfile },
             // User routes
-            {path: 'addlesson', Component: AddLesson},
-            {path: 'mylessons', Component: MyLessons},
-            {path: 'myfavorites', Component: MyFavorites},
-            {path: 'profile', Component: UserProfile},
+            { path: 'addlesson', Component: AddLesson },
+            { path: 'mylessons', Component: MyLessons },
+            { path: 'myfavorites', Component: MyFavorites },
+            { path: 'profile', Component: UserProfile },
         ]
     },
+
     {
         path: '/',
         Component: AuthLayout,
