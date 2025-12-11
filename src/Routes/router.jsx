@@ -19,6 +19,7 @@ import ManageLessons from "../Pages/Dashboard/Admin/ManageLessons";
 import ReportedLessons from "../Pages/Dashboard/Admin/ReportedLessons";
 import AdminProfile from "../Pages/Dashboard/Admin/AdminProfile";
 import UpdateLesson from "../Pages/Dashboard/User/UpdateLesson";
+import Error404 from "../Components/Eerror404/Error404";
 
 export const router = createBrowserRouter([
     {
@@ -66,4 +67,7 @@ export const router = createBrowserRouter([
             }
         ]
     },
+    {
+        path: '/*', Component: Error404
+    }
 ])
