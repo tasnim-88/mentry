@@ -1,31 +1,18 @@
-import React, { useEffect, useState } from 'react';
+// import React, { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router';
 import logo from '../../../assets/icons8-wisdom-66.png'
+import Theme from '../../../Components/Theme/Theme';
 
 const Navbar = () => {
 
-    const [theme, setTheme] = useState(() => {
-        const savedTheme = localStorage.getItem("theme") || "light";
-        document.querySelector("html").setAttribute("data-theme", savedTheme);
-        return savedTheme;
-    });
-
-    useEffect(() => {
-        localStorage.setItem("theme", theme);
-        document.querySelector("html").setAttribute("data-theme", theme);
-    }, [theme]);
-
-
-    const handleTheme = (checked) => {
-        setTheme(checked ? "dark" : "light");
-    };
+    
 
     const links = <>
-        <li><NavLink>Home</NavLink></li>
-        <li><NavLink>Add Lesson</NavLink></li>
-        <li><NavLink>My Lessons</NavLink></li>
+        <li><NavLink to={'/'}>Home</NavLink></li>
+        <li><NavLink to={'/dashboard/addlesson'}>Add Lesson</NavLink></li>
+        <li><NavLink to={'/dashboard/mylessons'}>My Lessons</NavLink></li>
         <li><NavLink to={'/publiclessons'}>Public Lessons</NavLink></li>
-        <li><NavLink>Pricing</NavLink></li>
+        <li><NavLink to={'/pricing'}>Pricing</NavLink></li>
         {/* <li><NavLink></NavLink></li> */}
     </>
 
@@ -54,11 +41,7 @@ const Navbar = () => {
                 <div className="navbar-end">
                     <Link to={'/login'} className="btn">Login</Link>
                 </div>
-                <input
-                    onChange={(e) => handleTheme(e.target.checked)}
-                    type="checkbox"
-                    defaultChecked={localStorage.getItem('theme') === "dark"}
-                    className="toggle" />
+                <Theme />
                 {/* Dropdown */}
                 <div className="dropdown dropdown-end">
                     <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
@@ -77,7 +60,7 @@ const Navbar = () => {
                                 <span className="badge">New</span>
                             </a>
                         </li>
-                        <li><a>Dashboard</a></li>
+                        <li><Link to={'/dashboard'}>Dashboard</Link></li>
                         <li><a>Logout</a></li>
                     </ul>
                 </div>

@@ -6,6 +6,17 @@ import Login from "../Pages/Auth/Login/Login";
 import Register from "../Pages/Auth/Register/Register";
 import PublicLessons from "../Pages/PublicLessons/PublicLessons";
 import LessonDetails from "../Pages/LessonDetails/LessonDetails";
+import AddLesson from "../Pages/Dashboard/AddLesson/AddLesson";
+import MyLessons from "../Pages/Dashboard/MyLessons/MyLessons";
+import Pricing from "../Pages/Pricing/Pricing";
+import DashboardLayout from "../Layouts/DashboardLayout";
+import AdminDashboard from "../Pages/Dashboard/DashboardHome/AdminDashboard";
+import DashboardHome from "../Pages/Dashboard/DashboardHome/DashboardHome";
+import MyFavorites from "../Pages/Dashboard/User/MyFavorites";
+import UserProfile from "../Pages/Dashboard/User/UserProfile";
+import ManageUsers from "../Pages/Dashboard/Admin/ManageUsers";
+import ManageLessons from "../Pages/Dashboard/Admin/ManageLessons";
+import ReportedLessons from "../Pages/Dashboard/Admin/ReportedLessons";
 
 export const router = createBrowserRouter([
     {
@@ -15,6 +26,23 @@ export const router = createBrowserRouter([
             { index: true, Component: Home },
             {path: '/publiclessons', Component: PublicLessons},
             {path: '/lessondetails', Component: LessonDetails},
+            {path: '/pricing', Component: Pricing},
+        ]
+    },
+    {
+        path: '/dashboard',
+        Component: DashboardLayout,
+        children:[
+            {index: true, Component: DashboardHome},
+            // Admin routes
+            {path: 'admin/manageusers', Component: ManageUsers},
+            {path: 'admin/managelessons', Component: ManageLessons},
+            {path: 'admin/reportedlessons', Component: ReportedLessons},
+            // User routes
+            {path: 'addlesson', Component: AddLesson},
+            {path: 'mylessons', Component: MyLessons},
+            {path: 'myfavorites', Component: MyFavorites},
+            {path: 'profile', Component: UserProfile},
         ]
     },
     {
