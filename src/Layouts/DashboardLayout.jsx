@@ -1,16 +1,26 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet } from 'react-router';
 import Theme from '../Components/Theme/Theme';
 import { ImBook, ImProfile } from 'react-icons/im';
 import { PiStudentBold } from 'react-icons/pi';
-import { FiHome } from 'react-icons/fi';
+import { FiHome, FiLogOut } from 'react-icons/fi';
 import { IoSettingsOutline } from 'react-icons/io5';
 import logoImg from '../assets/icons8-wisdom-66.png'
 import { MdOutlineFavorite, MdReport } from 'react-icons/md';
 import { HiUsers } from 'react-icons/hi';
 import { RiAdminFill } from 'react-icons/ri';
+import useAuth from '../Hooks/useAuth';
 
 const DashboardLayout = () => {
+
+    const { signOutUser } = useAuth();
+
+    const handleSignout = () => {
+        signOutUser()
+            .then()
+            .catch()
+    }
+
     return (
         <div>
             <div className="drawer lg:drawer-open">
@@ -23,7 +33,9 @@ const DashboardLayout = () => {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor" className="my-1.5 inline-block size-4"><path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path><path d="M9 4v16"></path><path d="M14 10l2 2l-2 2"></path></svg>
                         </label>
                         <div className="px-4">Navbar Title</div>
-                        <Theme />
+                        <div className='ml-auto flex items-center gap-4'>
+                            <Theme />
+                        </div>
                     </nav>
                     {/* Page content here */}
                     <Outlet />
@@ -42,11 +54,11 @@ const DashboardLayout = () => {
                                     <span className="is-drawer-close:hidden text-2xl font-bold">Mentry</span>
                                 </NavLink>
                             </li>
-                            
+
                             <li>
                                 <NavLink to={'/dashboard'} className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Dashboard">
                                     {/* Home icon */}
-                                    <FiHome size={20}/>
+                                    <FiHome size={20} />
                                     <span className="is-drawer-close:hidden">DashBoard</span>
                                 </NavLink>
                             </li>
@@ -54,44 +66,44 @@ const DashboardLayout = () => {
                             {/* Admin links */}
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Users" to={'/dashboard/admin/manageusers'}>
-                                    <HiUsers size={20}/>
+                                    <HiUsers size={20} />
                                     <span className="is-drawer-close:hidden">Manage Users</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Lessons" to={'/dashboard/admin/managelessons'}>
-                                    <ImBook size={20}/>
+                                    <ImBook size={20} />
                                     <span className="is-drawer-close:hidden">Manage Lessons</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Reported Lessons" to={'/dashboard/admin/reportedlessons'}>
-                                    <MdReport size={20}/>
+                                    <MdReport size={20} />
                                     <span className="is-drawer-close:hidden">Reported Lessons</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Admin Profile" to={'/dashboard/admin/adminprofile'}>
-                                    <RiAdminFill size={20}/>
+                                    <RiAdminFill size={20} />
                                     <span className="is-drawer-close:hidden">Admin Profile</span></NavLink>
                             </li>
 
                             {/* User links */}
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Add Lesson" to={'/dashboard/addlesson'}>
-                                    <ImBook size={20}/>
+                                    <ImBook size={20} />
                                     <span className="is-drawer-close:hidden">Add Lesson</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Lessons" to={'/dashboard/mylessons'}>
-                                    <PiStudentBold size={20}/>
+                                    <PiStudentBold size={20} />
                                     <span className="is-drawer-close:hidden">My Lessons</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Favorites" to={'/dashboard/myfavorites'}>
-                                    <MdOutlineFavorite size={20}/>
+                                    <MdOutlineFavorite size={20} />
                                     <span className="is-drawer-close:hidden">My Favorites</span></NavLink>
                             </li>
                             <li>
                                 <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Profile" to={'/dashboard/profile'}>
-                                    <ImProfile size={20}/>
+                                    <ImProfile size={20} />
                                     <span className="is-drawer-close:hidden">Profile</span></NavLink>
                             </li>
 
@@ -99,9 +111,15 @@ const DashboardLayout = () => {
                             <li>
                                 <button className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Settings">
                                     {/* Settings icon */}
-                                    <IoSettingsOutline size={20}/>
+                                    <IoSettingsOutline size={20} />
                                     <span className="is-drawer-close:hidden">Settings</span>
                                 </button>
+                            </li>
+                            <li className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Logout">
+                                <Link onClick={handleSignout} >
+                                    <FiLogOut size={20} />
+                                    <span className="is-drawer-close:hidden">Logout</span>
+                                </Link>
                             </li>
                         </ul>
                     </div>

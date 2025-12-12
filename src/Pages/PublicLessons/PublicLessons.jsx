@@ -6,13 +6,14 @@ import { Link } from 'react-router';
 import useAxiosSecure from '../../Hooks/useAxiosSecure';
 import { useQuery } from '@tanstack/react-query';
 import useAuth from '../../Hooks/useAuth';
+import Loading from '../../Components/Loading/Loading';
 
 const PublicLessons = () => {
 
-    const { user } = useAuth(); // user.isPremium
+    const { user } = useAuth(); 
     const axiosSecure = useAxiosSecure();
 
-    const { data: lessons = [] } = useQuery({
+    const { data: lessons = [], isLoading } = useQuery({
         queryKey: ['lessons'],
         queryFn: async () => {
             const res = await axiosSecure.get('/lessons');
@@ -20,15 +21,12 @@ const PublicLessons = () => {
         }
     });
 
-    // -----------------------------
-    // 🔍 SEARCH + FILTER + SORT STATES
-    // -----------------------------
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("All Categories");
     const [tone, setTone] = useState("All Tones");
     const [sort, setSort] = useState("Newest");
 
-    // ⭐ PAGINATION STATES
+   
     const [currentPage, setCurrentPage] = useState(1);
     const lessonsPerPage = 6;
 
@@ -37,9 +35,7 @@ const PublicLessons = () => {
         return txt.length > 120 ? txt.slice(0, 120) + "..." : txt;
     };
 
-    // -----------------------------
-    // 🔥 FILTERED + SORTED RESULTS
-    // -----------------------------
+   
     const filteredLessons = useMemo(() => {
         return lessons
             .filter(l => {
@@ -66,9 +62,7 @@ const PublicLessons = () => {
     }, [lessons, search, category, tone, sort]);
 
 
-    // -----------------------------
-    // ⭐ PAGINATION LOGIC
-    // -----------------------------
+    
     const totalPages = Math.ceil(filteredLessons.length / lessonsPerPage);
     const indexOfLast = currentPage * lessonsPerPage;
     const indexOfFirst = indexOfLast - lessonsPerPage;
@@ -79,6 +73,10 @@ const PublicLessons = () => {
         setCurrentPage(page);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
+
+    if(isLoading){
+        return <Loading></Loading>
+    }
 
     return (
         <div>
