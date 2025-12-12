@@ -3,7 +3,6 @@ import error404 from '../../assets/animation/Error 404.json'
 import Lottie from 'lottie-react';
 import Theme from '../Theme/Theme';
 import Logo from '../Logo/Logo';
-import Footer from '../../Pages/Shared/Footer/Footer';
 
 const Error404 = () => {
     return (
@@ -23,7 +22,7 @@ const Error404 = () => {
                     className="" 
                 />
             </div>
-            <Footer />
+            
         </div>
     );
 };
