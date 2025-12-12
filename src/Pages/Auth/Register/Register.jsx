@@ -1,129 +1,224 @@
 import React, { useState } from 'react';
 import { MdVisibility, MdVisibilityOff } from 'react-icons/md';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import Logo from '../../../Components/Logo/Logo';
+import { useForm } from 'react-hook-form';
+import useAuth from '../../../Hooks/useAuth';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import axios from 'axios';
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm();
+
+    const { registerUser, updateUser, googleLogin } = useAuth();
+    const axiosSecure = useAxiosSecure();
+
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    const onSubmit = async (data) => {
+        try {
+            const profileImg = data.photo[0];
+
+            // Step 1: Register User
+            const result = await registerUser(data.email, data.password);
+            console.log("Firebase user:", result.user);
+
+            // Step 2: Upload image to imgbb
+            const formData = new FormData();
+            formData.append('image', profileImg);
+
+            const imgUploadURL = `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_image_host}`;
+            const imgRes = await axios.post(imgUploadURL, formData);
+            const photoURL = imgRes.data.data.url;
+
+            // Step 3: Save user in your database
+            const userInfo = {
+                email: data.email,
+                displayName: data.fullName,
+                photoURL: photoURL,
+            };
+
+            const dbRes = await axiosSecure.post('/users', userInfo);
+
+            if (dbRes.data.insertedId) {
+                console.log("User added to database");
+            }
+
+            // Step 4: Update Firebase profile
+            await updateUser({
+                displayName: data.fullName,
+                photoURL: photoURL,
+            });
+
+            console.log("Profile updated");
+
+            // Step 5: Redirect
+            navigate(location?.state || '/');
+        } catch (err) {
+            console.log("Registration Error:", err);
+        }
+    };
+
+    const handleGoogleRegister = () => {
+        googleLogin()
+            .then(() => navigate(location?.state || '/'))
+            .catch((err) => console.log(err));
+    };
+
     return (
-        <div>
-            <div className="min-h-screen bg-base-200 flex flex-col">
-                {/* NAVBAR */}
-                <div className="navbar bg-base-200 border-b border-base-300 px-4 md:px-20">
-                    <div className="flex-1">
-                        <Logo/>
-                    </div>
-
-                    <div className="flex-none space-x-6">
-                        <a className="link link-hover">Explore Lessons</a>
-                        <a className="link link-hover">About</a>
-                        <button className="btn btn-sm btn-success">Login</button>
-                    </div>
+        <div className="min-h-screen bg-base-200 flex flex-col">
+            {/* NAV */}
+            <div className="navbar bg-base-200 border-b border-base-300 px-4 md:px-20">
+                <div className="flex-1">
+                    <Logo />
                 </div>
+                <div className="flex-none space-x-6">
+                    <a className="link link-hover">Explore Lessons</a>
+                    <a className="link link-hover">About</a>
 
-                {/* MAIN CONTENT */}
-                <div className="flex flex-col items-center justify-center grow px-4 py-10">
-                    <h1 className="text-3xl font-bold text-center">Create Your Account</h1>
-                    <p className="text-base-content/70 mt-1 text-center">
-                        Start preserving your wisdom today.
-                    </p>
-
-                    <form className="w-full max-w-md mt-10 space-y-4">
-                        {/* Full Name */}
-                        <div>
-                            <label className="label">
-                                <span className="label-text">Full Name</span>
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Enter your full name"
-                                className="input input-bordered w-full"
-                            />
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                            <label className="label">
-                                <span className="label-text">Email Address</span>
-                            </label>
-                            <input
-                                type="email"
-                                placeholder="Enter your email address"
-                                className="input input-bordered w-full"
-                            />
-                        </div>
-
-                        {/* Profile Photo URL */}
-                        <div>
-                            <label className="label">
-                                <span className="label-text">
-                                    Profile Photo URL{" "}
-                                    <span className="text-base-content/50">(Optional)</span>
-                                </span>
-                            </label>
-                            <input
-                                type="url"
-                                placeholder="https://example.com/photo.jpg"
-                                className="input input-bordered w-full"
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div className='relative'>
-                            <label className="label">
-                                <span className="label-text">Password</span>
-                            </label>
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password"
-                                className="input input-bordered w-full"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-2/3 z-50 -translate-y-1/2 text-xl text-gray-400"
-                            >
-                                {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
-                            </button>
-                        </div>
-
-                        {/* Create Account Button */}
-                        <button className="btn btn-success w-full mt-4">
-                            Create Account
-                        </button>
-
-                        {/* OR Divider */}
-                        <div className="divider">OR</div>
-
-                        {/* Google Button */}
-                        <button className="btn bg-neutral w-full text-base-content">
-                            <img
-                                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                                className="w-5 h-5"
-                                alt="Google"
-                            />
-                            Sign up with Google
-                        </button>
-
-                        {/* Login Link */}
-                        <p className="text-center mt-2 text-sm">
-                            Already have an account?{" "}
-                            <Link to={'/login'} className="link link-success">Log In</Link>
-                        </p>
-                    </form>
+                    <Link to="/login" className="btn btn-sm btn-success">
+                        Login
+                    </Link>
                 </div>
-
-                {/* FOOTER */}
-                <footer className="py-6 text-center text-sm text-base-content/60">
-                    <div className="space-x-4">
-                        <a className="link link-hover">Terms of Service</a>
-                        <a className="link link-hover">Privacy Policy</a>
-                    </div>
-                    <p className="mt-2">
-                        © 2025 Digital Life Lessons. All rights reserved.
-                    </p>
-                </footer>
             </div>
+
+            {/* MAIN */}
+            <div className="flex flex-col items-center justify-center grow px-4 py-10">
+                <h1 className="text-3xl font-bold text-center">Create Your Account</h1>
+                <p className="text-base-content/70 mt-1 text-center">
+                    Start preserving your wisdom today.
+                </p>
+
+                <form
+                    className="w-full max-w-md mt-10 space-y-4"
+                    onSubmit={handleSubmit(onSubmit)}
+                >
+                    {/* FULL NAME */}
+                    <div>
+                        <label className="label">
+                            <span className="label-text">Full Name</span>
+                        </label>
+                        <input
+                            type="text"
+                            {...register("fullName", { required: "Full name is required" })}
+                            placeholder="Enter your full name"
+                            className="input input-bordered w-full"
+                        />
+                        {errors.fullName && (
+                            <p className="text-sm text-red-500 mt-1">{errors.fullName.message}</p>
+                        )}
+                    </div>
+
+                    {/* EMAIL */}
+                    <div>
+                        <label className="label">
+                            <span className="label-text">Email Address</span>
+                        </label>
+                        <input
+                            type="email"
+                            {...register("email", { required: "Email is required" })}
+                            placeholder="Enter your email address"
+                            className="input input-bordered w-full"
+                        />
+                        {errors.email && (
+                            <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+                        )}
+                    </div>
+
+                    {/* PHOTO (FILE UPLOAD) */}
+                    <div>
+                        <label className="label">
+                            <span className="label-text">Profile Photo</span>
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            {...register("photo", { required: "Profile photo is required" })}
+                            className="file-input file-input-bordered w-full"
+                        />
+                        {errors.photo && (
+                            <p className="text-sm text-red-500 mt-1">{errors.photo.message}</p>
+                        )}
+                    </div>
+
+                    {/* PASSWORD */}
+                    <div className="relative">
+                        <label className="label">
+                            <span className="label-text">Password</span>
+                        </label>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            {...register("password", {
+                                required: "Password is required",
+                                minLength: {
+                                    value: 6,
+                                    message: "Password must be at least 6 characters",
+                                },
+                            })}
+                            placeholder="Enter your password"
+                            className="input input-bordered w-full"
+                        />
+
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-11 z-50 -translate-y-1/2 text-xl text-gray-400"
+                        >
+                            {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                        </button>
+
+                        {errors.password && (
+                            <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+                        )}
+                    </div>
+
+                    {/* CREATE BUTTON */}
+                    <button type="submit" className="btn btn-success w-full mt-2">
+                        Create Account
+                    </button>
+
+                    {/* DIVIDER */}
+                    <div className="divider">OR</div>
+
+                    {/* GOOGLE */}
+                    <button
+                        type="button"
+                        onClick={handleGoogleRegister}
+                        className="btn bg-neutral w-full text-base-content"
+                    >
+                        <img
+                            src="https://www.svgrepo.com/show/475656/google-color.svg"
+                            alt="Google"
+                            className="w-5 h-5"
+                        />
+                        Sign up with Google
+                    </button>
+
+                    {/* LOGIN LINK */}
+                    <p className="text-center mt-2 text-sm">
+                        Already have an account?{" "}
+                        <Link to="/login" className="link link-success">
+                            Log In
+                        </Link>
+                    </p>
+                </form>
+            </div>
+
+            {/* FOOTER */}
+            <footer className="py-6 text-center text-sm text-base-content/60">
+                <div className="space-x-4">
+                    <a className="link link-hover">Terms of Service</a>
+                    <a className="link link-hover">Privacy Policy</a>
+                </div>
+                <p className="mt-2">© 2025 Digital Life Lessons. All rights reserved.</p>
+            </footer>
         </div>
     );
 };
