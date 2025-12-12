@@ -5,11 +5,12 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import Logo from '../../../Components/Logo/Logo';
 import { useForm } from 'react-hook-form';
 import useAuth from '../../../Hooks/useAuth';
+import SocialLogin from '../SocialLogin/SocialLogin';
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
 
-    const { signInUser, googleLogin } = useAuth();
+    const { signInUser } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -29,11 +30,6 @@ const Login = () => {
             });
     };
 
-    const handleGoogle = () => {
-        googleLogin()
-            .then(() => navigate(location?.state || '/'))
-            .catch((err) => console.log(err.message));
-    };
 
     return (
         <div className="min-h-screen bg-base-200 flex">
@@ -56,12 +52,6 @@ const Login = () => {
 
             {/* RIGHT SIDE */}
             <div className="w-full lg:w-1/2 bg-[#08150f] text-white flex flex-col justify-center px-8 lg:px-20">
-
-                <div className="text-right mb-6 text-sm">
-                    <Link to="/register" className="hover:underline opacity-80">
-                        Register
-                    </Link>
-                </div>
 
                 <h2 className="text-3xl font-semibold mb-6">Welcome Back</h2>
 
@@ -133,14 +123,7 @@ const Login = () => {
                     </div>
 
                     {/* GOOGLE LOGIN */}
-                    <button
-                        type="button"
-                        onClick={handleGoogle}
-                        className="btn w-full border border-gray-600 bg-transparent hover:bg-gray-800"
-                    >
-                        <FcGoogle className="text-xl" />
-                        Sign in with Google
-                    </button>
+                    <SocialLogin />
                 </form>
 
                 <p className="mt-6 text-sm text-center opacity-80">

@@ -1,0 +1,47 @@
+import React from 'react';
+import { FcGoogle } from 'react-icons/fc';
+import useAuth from '../../../Hooks/useAuth';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import { useLocation, useNavigate } from 'react-router';
+
+
+const SocialLogin = () => {
+
+    const { googleLogin } = useAuth()
+    const axiosSecure = useAxiosSecure()
+    const location = useLocation()
+    const navigate = useNavigate()
+
+    const handleGoogle = () => {
+        googleLogin()
+            .then(result => {
+                console.log(result.user);
+                // create user in the database
+                const userInfo = {
+                    email: result.user.email,
+                    displayName: result.user.displayName,
+                    photoURL: result.user.photoURL
+                }
+                axiosSecure.post('/users', userInfo)
+                    .then(res => {
+                        console.log('User data has been stored', res.data);
+                        navigate(location?.state || '/')
+
+                    })
+            })
+            .catch(error => {
+                console.log(error.code);
+            })
+    }
+
+    return (
+        <div>
+            <button onClick={handleGoogle} className="w-full mb-8 btn bg-white text-black border-[#e5e5e5]">
+                <FcGoogle size={24} />
+                Login with Google
+            </button>
+        </div>
+    );
+};
+
+export default SocialLogin;

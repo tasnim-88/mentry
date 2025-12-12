@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form';
 import useAuth from '../../../Hooks/useAuth';
 import useAxiosSecure from '../../../Hooks/useAxiosSecure';
 import axios from 'axios';
+import SocialLogin from '../SocialLogin/SocialLogin';
+import Theme from '../../../Components/Theme/Theme';
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +18,7 @@ const Register = () => {
         formState: { errors }
     } = useForm();
 
-    const { registerUser, updateUser, googleLogin } = useAuth();
+    const { registerUser, updateUser } = useAuth();
     const axiosSecure = useAxiosSecure();
 
     const location = useLocation();
@@ -26,11 +28,10 @@ const Register = () => {
         try {
             const profileImg = data.photo[0];
 
-            // Step 1: Register User
+            // 1. Register User
             const result = await registerUser(data.email, data.password);
-            console.log("Firebase user:", result.user);
 
-            // Step 2: Upload image to imgbb
+            // 2. Upload image to imgbb
             const formData = new FormData();
             formData.append('image', profileImg);
 
@@ -38,38 +39,26 @@ const Register = () => {
             const imgRes = await axios.post(imgUploadURL, formData);
             const photoURL = imgRes.data.data.url;
 
-            // Step 3: Save user in your database
+            // 3. Save user to database
             const userInfo = {
                 email: data.email,
                 displayName: data.fullName,
                 photoURL: photoURL,
             };
 
-            const dbRes = await axiosSecure.post('/users', userInfo);
+            await axiosSecure.post('/users', userInfo);
 
-            if (dbRes.data.insertedId) {
-                console.log("User added to database");
-            }
-
-            // Step 4: Update Firebase profile
+            // 4. Update Firebase profile
             await updateUser({
                 displayName: data.fullName,
                 photoURL: photoURL,
             });
 
-            console.log("Profile updated");
-
-            // Step 5: Redirect
+            // 5. Redirect
             navigate(location?.state || '/');
         } catch (err) {
             console.log("Registration Error:", err);
         }
-    };
-
-    const handleGoogleRegister = () => {
-        googleLogin()
-            .then(() => navigate(location?.state || '/'))
-            .catch((err) => console.log(err));
     };
 
     return (
@@ -79,14 +68,7 @@ const Register = () => {
                 <div className="flex-1">
                     <Logo />
                 </div>
-                <div className="flex-none space-x-6">
-                    <a className="link link-hover">Explore Lessons</a>
-                    <a className="link link-hover">About</a>
-
-                    <Link to="/login" className="btn btn-sm btn-success">
-                        Login
-                    </Link>
-                </div>
+                <Theme />
             </div>
 
             {/* MAIN */}
@@ -132,7 +114,7 @@ const Register = () => {
                         )}
                     </div>
 
-                    {/* PHOTO (FILE UPLOAD) */}
+                    {/* PHOTO */}
                     <div>
                         <label className="label">
                             <span className="label-text">Profile Photo</span>
@@ -153,6 +135,7 @@ const Register = () => {
                         <label className="label">
                             <span className="label-text">Password</span>
                         </label>
+
                         <input
                             type={showPassword ? "text" : "password"}
                             {...register("password", {
@@ -161,6 +144,14 @@ const Register = () => {
                                     value: 6,
                                     message: "Password must be at least 6 characters",
                                 },
+                                validate: {
+                                    hasUppercase: (value) =>
+                                        /[A-Z]/.test(value) ||
+                                        "Must include at least one uppercase letter",
+                                    hasLowercase: (value) =>
+                                        /[a-z]/.test(value) ||
+                                        "Must include at least one lowercase letter",
+                                }
                             })}
                             placeholder="Enter your password"
                             className="input input-bordered w-full"
@@ -188,18 +179,7 @@ const Register = () => {
                     <div className="divider">OR</div>
 
                     {/* GOOGLE */}
-                    <button
-                        type="button"
-                        onClick={handleGoogleRegister}
-                        className="btn bg-neutral w-full text-base-content"
-                    >
-                        <img
-                            src="https://www.svgrepo.com/show/475656/google-color.svg"
-                            alt="Google"
-                            className="w-5 h-5"
-                        />
-                        Sign up with Google
-                    </button>
+                    <SocialLogin />
 
                     {/* LOGIN LINK */}
                     <p className="text-center mt-2 text-sm">
