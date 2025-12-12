@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { CiLock } from 'react-icons/ci';
 import { FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
 import { IoSearch } from 'react-icons/io5';
@@ -9,7 +9,7 @@ import useAuth from '../../Hooks/useAuth';
 
 const PublicLessons = () => {
 
-    const { user } = useAuth(); // user.isPremium available
+    const { user } = useAuth(); // user.isPremium
     const axiosSecure = useAxiosSecure();
 
     const { data: lessons = [] } = useQuery({
@@ -20,9 +20,64 @@ const PublicLessons = () => {
         }
     });
 
+    // -----------------------------
+    // 🔍 SEARCH + FILTER + SORT STATES
+    // -----------------------------
+    const [search, setSearch] = useState("");
+    const [category, setCategory] = useState("All Categories");
+    const [tone, setTone] = useState("All Tones");
+    const [sort, setSort] = useState("Newest");
+
+    // ⭐ PAGINATION STATES
+    const [currentPage, setCurrentPage] = useState(1);
+    const lessonsPerPage = 6;
+
     const shortText = (txt) => {
         if (!txt) return "";
         return txt.length > 120 ? txt.slice(0, 120) + "..." : txt;
+    };
+
+    // -----------------------------
+    // 🔥 FILTERED + SORTED RESULTS
+    // -----------------------------
+    const filteredLessons = useMemo(() => {
+        return lessons
+            .filter(l => {
+                const text = (l.lessonInfo.title + " " + l.lessonInfo.description).toLowerCase();
+                const matchesSearch = text.includes(search.toLowerCase());
+
+                const matchesCategory =
+                    category === "All Categories" || l.lessonInfo.category === category;
+
+                const matchesTone =
+                    tone === "All Tones" || l.lessonInfo.tone === tone;
+
+                return matchesSearch && matchesCategory && matchesTone;
+            })
+            .sort((a, b) => {
+                if (sort === "Newest") {
+                    return new Date(b.metadata.createdDate) - new Date(a.metadata.createdDate);
+                }
+                if (sort === "Most Saved") {
+                    return (b.metadata.saves || 0) - (a.metadata.saves || 0);
+                }
+                return 0;
+            });
+    }, [lessons, search, category, tone, sort]);
+
+
+    // -----------------------------
+    // ⭐ PAGINATION LOGIC
+    // -----------------------------
+    const totalPages = Math.ceil(filteredLessons.length / lessonsPerPage);
+    const indexOfLast = currentPage * lessonsPerPage;
+    const indexOfFirst = indexOfLast - lessonsPerPage;
+    const currentLessons = filteredLessons.slice(indexOfFirst, indexOfLast);
+
+    const handlePageChange = (page) => {
+        if (page < 1 || page > totalPages) return;
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     return (
@@ -41,7 +96,7 @@ const PublicLessons = () => {
                             </p>
                         </div>
                         <h1 className="text-slate-900 dark:text-white">
-                            Total lessons: {lessons.length}
+                            Total lessons: {filteredLessons.length}
                         </h1>
                     </div>
 
@@ -58,13 +113,25 @@ const PublicLessons = () => {
                                 <input
                                     type="text"
                                     placeholder="Search by title or keyword..."
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
                                     className="form-input w-full pl-10 pr-4 py-2 rounded-lg text-slate-900 dark:text-white bg-slate-200 dark:bg-[#28392f]"
                                 />
                             </div>
 
                             {/* FILTERS */}
                             <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                                <select className="select w-full sm:w-48 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]">
+                                <select
+                                    value={category}
+                                    onChange={(e) => {
+                                        setCategory(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="select w-full sm:w-48 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]"
+                                >
                                     <option>All Categories</option>
                                     <option>Career</option>
                                     <option>Relationships</option>
@@ -73,12 +140,19 @@ const PublicLessons = () => {
                                     <option>Finance</option>
                                 </select>
 
-                                <select className="select w-full sm:w-48 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]">
+                                <select
+                                    value={tone}
+                                    onChange={(e) => {
+                                        setTone(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="select w-full sm:w-48 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]"
+                                >
                                     <option>All Tones</option>
-                                    <option>Hopeful</option>
-                                    <option>Reflective</option>
-                                    <option>Humorous</option>
-                                    <option>Serious</option>
+                                    <option>Gratitude</option>
+                                    <option>Realization</option>
+                                    <option>Sad</option>
+                                    <option>Motivational</option>
                                 </select>
                             </div>
 
@@ -87,7 +161,14 @@ const PublicLessons = () => {
                                 <label className="text-slate-600 dark:text-slate-300 text-sm">
                                     Sort by:
                                 </label>
-                                <select className="select w-40 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]">
+                                <select
+                                    value={sort}
+                                    onChange={(e) => {
+                                        setSort(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
+                                    className="select w-40 px-4 py-2 rounded-lg bg-slate-200 dark:bg-[#28392f]"
+                                >
                                     <option>Newest</option>
                                     <option>Most Saved</option>
                                 </select>
@@ -96,7 +177,7 @@ const PublicLessons = () => {
 
                         {/* LESSON CARDS */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {lessons.map((lesson) => {
+                            {currentLessons.map((lesson) => {
                                 const isPremiumLesson = lesson.metadata.visibility === "Private";
                                 const userIsPremium = user?.isPremium;
                                 const locked = isPremiumLesson && !userIsPremium;
@@ -187,23 +268,43 @@ const PublicLessons = () => {
                             })}
                         </div>
 
-                        {/* PAGINATION */}
+                        {/* ⭐ PAGINATION (REAL, DYNAMIC) */}
                         <div className="flex items-center justify-center mt-8">
                             <nav className="flex items-center gap-2">
-                                <button className="size-9 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg">
+
+                                {/* Prev */}
+                                <button
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="size-9 flex items-center justify-center disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg"
+                                >
                                     <FaChevronCircleLeft size={22} />
                                 </button>
 
-                                <span className="size-9 flex items-center justify-center bg-primary/20 rounded-lg text-sm font-bold text-slate-900 dark:text-white">1</span>
+                                {/* Page Numbers */}
+                                {[...Array(totalPages)].map((_, idx) => {
+                                    const page = idx + 1;
+                                    return (
+                                        <button
+                                            key={page}
+                                            onClick={() => handlePageChange(page)}
+                                            className={`size-9 flex items-center justify-center rounded-lg font-bold
+                                            ${currentPage === page
+                                                    ? "bg-primary/30 text-black dark:text-white"
+                                                    : "hover:bg-slate-200 dark:hover:bg-[#28392f]"
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    );
+                                })}
 
-                                <button className="size-9 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg">2</button>
-                                <button className="size-9 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg">3</button>
-
-                                <span className="text-slate-500 dark:text-slate-400">...</span>
-
-                                <button className="size-9 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg">10</button>
-
-                                <button className="size-9 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg">
+                                {/* Next */}
+                                <button
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="size-9 flex items-center justify-center disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-[#28392f] rounded-lg"
+                                >
                                     <FaChevronCircleRight size={22} />
                                 </button>
                             </nav>
