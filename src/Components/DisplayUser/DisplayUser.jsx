@@ -4,7 +4,9 @@ import { Link } from 'react-router';
 
 const DisplayUser = () => {
 
-    const { signOutUser } = useAuth();
+    const { user, signOutUser } = useAuth();
+    console.log(user.photoURL);
+    
 
     const handleSignout = () => {
         signOutUser()
@@ -18,8 +20,9 @@ const DisplayUser = () => {
                 <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
                     <div className="w-10 rounded-full">
                         <img
+                        title={user.displayName}
                             alt="Tailwind CSS Navbar component"
-                            src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                            src={user.photoURL} />
                     </div>
                 </div>
                 <ul
