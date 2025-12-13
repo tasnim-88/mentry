@@ -20,6 +20,10 @@ import ReportedLessons from "../Pages/Dashboard/Admin/ReportedLessons";
 import AdminProfile from "../Pages/Dashboard/Admin/AdminProfile";
 import UpdateLesson from "../Pages/Dashboard/User/UpdateLesson";
 import Error404 from "../Components/Eerror404/Error404";
+import PaymentSuccess from "../Pages/Payment/PaymentSuccess";
+import PaymentCancelled from "../Pages/Payment/PaymentCancelled";
+import PrivateRoute from "./PrivateRoute";
+import FreeOnlyRoute from "./FreeOnlyRoute";
 
 export const router = createBrowserRouter([
     {
@@ -27,11 +31,37 @@ export const router = createBrowserRouter([
         Component: RootLayout,
         children: [
             { index: true, Component: Home },
-            { path: '/publiclessons', Component: PublicLessons },
-            { path: '/lessondetails', Component: LessonDetails },
-            { path: '/pricing', Component: Pricing },
+            { 
+                path: '/publiclessons', 
+                element: 
+                    <PrivateRoute>
+                        <PublicLessons />
+                    </PrivateRoute> 
+            },
+            { 
+                path: '/lessondetails', 
+                element: 
+                    <PrivateRoute>
+                        <LessonDetails />
+                    </PrivateRoute> 
+            },
             {
-                path: 'updatelesson', Component: UpdateLesson
+                path: '/pricing',
+                element:
+                    <PrivateRoute>
+                        <FreeOnlyRoute>
+                            <Pricing />
+                        </FreeOnlyRoute>
+                    </PrivateRoute>
+            },
+            { path: '/payment/success', Component: PaymentSuccess },
+            { path: '/payment/cancel', Component: PaymentCancelled },
+            {
+                path: 'updatelesson', 
+                element:
+                    <PrivateRoute>
+                        <UpdateLesson />
+                    </PrivateRoute>
             },
         ]
     },

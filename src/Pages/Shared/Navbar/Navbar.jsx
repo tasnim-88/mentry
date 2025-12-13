@@ -9,14 +9,31 @@ const Navbar = () => {
 
     const { user } = useAuth()
 
-    
+
 
     const links = <>
         <li><NavLink to={'/'}>Home</NavLink></li>
-        <li><NavLink to={'/dashboard/addlesson'}>Add Lesson</NavLink></li>
-        <li><NavLink to={'/dashboard/mylessons'}>My Lessons</NavLink></li>
         <li><NavLink to={'/publiclessons'}>Public Lessons</NavLink></li>
-        <li><NavLink to={'/pricing'}>Pricing</NavLink></li>
+        {
+            user && <>
+                <li><NavLink to={'/dashboard/addlesson'}>Add Lesson</NavLink></li>
+                <li><NavLink to={'/dashboard/mylessons'}>My Lessons</NavLink></li>
+                {/* Free users see Pricing */}
+                {!user.isPremium && (
+                    <li>
+                        <NavLink to="/pricing">Pricing</NavLink>
+                    </li>
+                )}
+
+                {/* Premium users see badge */}
+                {user.isPremium && (
+                    <li className="px-3 py-2 text-sm font-semibold text-primary">
+                        Premium ⭐
+                    </li>
+                )}
+            </>
+        }
+
         {/* <li><NavLink></NavLink></li> */}
     </>
 
@@ -43,7 +60,7 @@ const Navbar = () => {
                     </ul>
                 </div>
                 <div className="navbar-end gap-2">
-                <Theme />
+                    <Theme />
                     {
                         user ?
                             <DisplayUser />
@@ -51,7 +68,7 @@ const Navbar = () => {
                             <Link to={'/login'} className="btn">Login</Link>
                     }
                 </div>
-                
+
             </div>
         </div>
     );

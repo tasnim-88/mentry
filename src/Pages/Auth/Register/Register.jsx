@@ -30,6 +30,8 @@ const Register = () => {
 
             // 1. Register User
             const result = await registerUser(data.email, data.password);
+            console.log(result.user);
+            
 
             // 2. Upload image to imgbb
             const formData = new FormData();
@@ -41,9 +43,13 @@ const Register = () => {
 
             // 3. Save user to database
             const userInfo = {
+                uid: result.user.uid,
                 email: data.email,
                 displayName: data.fullName,
                 photoURL: photoURL,
+                role:'user',
+                isPremium: false,
+                createdAt: new Date(),
             };
 
             await axiosSecure.post('/users', userInfo);

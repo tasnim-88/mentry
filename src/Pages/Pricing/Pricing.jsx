@@ -1,7 +1,24 @@
 import React from "react";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
+import useAuth from "../../Hooks/useAuth";
+import useAxiosSecure from "../../Hooks/useAxiosSecure";
 
 const Pricing = () => {
+
+    const { user } = useAuth();
+    const axiosSecure = useAxiosSecure();
+
+    if (user?.isPremium) {
+        return <Navigate to="/" replace />;
+    }
+
+    const isPremium = user?.isPremium;
+
+    const handleUpgrade = async () => {
+        const res = await axiosSecure.post('/create-checkout-session');
+        window.location.href = res.data.url;
+    }
+
     return (
         <div>
             <main className="grow">
@@ -76,9 +93,14 @@ const Pricing = () => {
                             </p>
                         </div>
 
-                        <button className="btn btn-sm bg-primary text-primary-content font-bold rounded-lg">
-                            Upgrade to Premium
+                        <button
+                            disabled={isPremium}
+                            onClick={handleUpgrade}
+                            className="btn btn-sm bg-primary text-primary-content font-bold rounded-lg"
+                        >
+                            {isPremium ? "Already Premium ⭐" : "Upgrade to Premium"}
                         </button>
+
 
                         <div className="flex flex-col gap-3 pt-2">
                             {[

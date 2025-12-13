@@ -1,42 +1,45 @@
 import axios from 'axios';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import useAuth from './useAuth';
+import { auth } from '../Firebase/firebase.init';
 
 const axiosSecure = axios.create({
-    baseURL: 'http://localhost:3000'
-})
+    baseURL: 'http://localhost:3000',
+});
 
 const useAxiosSecure = () => {
-    const { user, signOutUser } = useAuth()
-    const navigate = useNavigate()
-    useEffect(() => {
-        // interceptor request
-        const reqInterceptor = axiosSecure.interceptors.request.use(config => {
-            config.headers.Authorization = `Bearer ${user?.accessToken}`
-            return config
-        })
-        // interceptor response
-        const resInterceptor = axiosSecure.interceptors.response.use((response) => {
-            return response
-        }, (error) => {
-            // console.error('axios response error', error?.response?.status, error?.message);
-            const statusCode = error.response?.status
-            if (statusCode === 401 || statusCode === 403) {
-                signOutUser()
-                    .then(() => {
-                        navigate('/login')
-                    })
-            }
-            return Promise.reject(error)
-        })
-        return () => {
-            axiosSecure.interceptors.request.eject(reqInterceptor)
-            axiosSecure.interceptors.response.eject(resInterceptor)
-        }
+    const navigate = useNavigate();
 
-    }, [user, signOutUser, navigate])
-    return axiosSecure
+    useEffect(() => {
+        const reqInterceptor = axiosSecure.interceptors.request.use(
+            async (config) => {
+                const user = auth.currentUser;
+                if (user) {
+                    const token = await user.getIdToken(true);
+                    config.headers.authorization = `Bearer ${token}`;
+                }
+                return config;
+            }
+        );
+
+        const resInterceptor = axiosSecure.interceptors.response.use(
+            (res) => res,
+            async (error) => {
+                if ([401, 403].includes(error.response?.status)) {
+                    await auth.signOut();        // ✅ Firebase logout
+                    navigate('/login', { replace: true });
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            axiosSecure.interceptors.request.eject(reqInterceptor);
+            axiosSecure.interceptors.response.eject(resInterceptor);
+        };
+    }, [navigate]);
+
+    return axiosSecure;
 };
 
 export default useAxiosSecure;
