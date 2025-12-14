@@ -256,9 +256,9 @@ const PublicLessons = () => {
                                                 <h4 className="text-white text-lg font-bold">
                                                     Premium Lesson
                                                 </h4>
-                                                <button className="mt-4 px-5 py-2 bg-primary text-slate-900 font-semibold rounded-lg">
+                                                <Link to={'/pricing'} className="mt-4 px-5 py-2 bg-primary text-slate-900 font-semibold rounded-lg hover:scale-105 transition">
                                                     Upgrade to View
-                                                </button>
+                                                </Link>
                                             </div>
                                         )}
                                     </div>

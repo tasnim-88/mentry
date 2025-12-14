@@ -33,13 +33,11 @@ export const router = createBrowserRouter([
             { index: true, Component: Home },
             { 
                 path: '/publiclessons', 
-                element: 
-                    <PrivateRoute>
-                        <PublicLessons />
-                    </PrivateRoute> 
+                Component: PublicLessons
+                   
             },
             { 
-                path: '/lessondetails', 
+                path: '/lessondetails/:id', 
                 element: 
                     <PrivateRoute>
                         <LessonDetails />
