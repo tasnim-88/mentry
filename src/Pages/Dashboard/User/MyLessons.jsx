@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { MdAdd, MdVisibility, MdEdit, MdDelete } from "react-icons/md";
 import useAxiosSecure from "../../../Hooks/useAxiosSecure";
 import { Link } from "react-router";
+import Loading from "../../../Components/Loading/Loading";
 
 const MyLessons = () => {
   const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
@@ -37,7 +38,7 @@ const MyLessons = () => {
   };
 
   if (loading || axiosLoading) {
-    return <div className="p-8 text-center">Loading lessons...</div>;
+    return <Loading />;
   }
 
   return (
@@ -46,7 +47,7 @@ const MyLessons = () => {
       <div className="flex flex-wrap justify-between items-center gap-4 p-4 mb-6">
         <p className="text-4xl font-black text-black dark:text-white">My Lessons</p>
         <Link
-          to="/addlesson"
+          to="/dashboard/addlesson"
           className="flex items-center gap-2 rounded-lg h-10 px-5 bg-primary text-white font-bold hover:opacity-90"
         >
           <MdAdd className="text-lg" />
