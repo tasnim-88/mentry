@@ -7,7 +7,7 @@ import { SlCalender } from 'react-icons/sl';
 import useAxiosSecure from '../../Hooks/useAxiosSecure';
 import { useQuery } from '@tanstack/react-query';
 import Loading from '../../Components/Loading/Loading';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 
 const LessonDetails = () => {
     const { id } = useParams();
@@ -167,9 +167,9 @@ const LessonDetails = () => {
                                     </div>
                                     <h3 className="text-xl font-bold text-black dark:text-white">{name}</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Total {totalLessons} lessons</p>
-                                    <button className="mt-4 w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
+                                    <Link to={'/dashboard/profile'} className="mt-4 w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
                                         View all lessons
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
 
