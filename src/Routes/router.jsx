@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
             { path: '/payment/success', Component: PaymentSuccess },
             { path: '/payment/cancel', Component: PaymentCancelled },
             {
-                path: 'updatelesson', 
+                path: '/updatelesson/:id', 
                 element:
                     <PrivateRoute>
                         <UpdateLesson />

@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import Loading from '../../../Components/Loading/Loading';
 
 const AddLesson = () => {
-    const axiosSecure = useAxiosSecure();
+    const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
     const { user, loading } = useAuth();
 
     const [isPremium, setIsPremium] = useState(false);
@@ -26,19 +26,22 @@ const AddLesson = () => {
         },
     });
 
-    // 🔐 Get premium status
+    // 🔐 Get premium status of logged-in user
     useEffect(() => {
         if (!user) return;
 
-        axiosSecure
-            .get('/users/me')
-            .then(res => {
+        const fetchUserRole = async () => {
+            try {
+                const res = await axiosSecure.get('/users/me');
                 setIsPremium(res.data.isPremium);
+            } catch (err) {
+                console.error('Failed to fetch user role:', err);
+            } finally {
                 setLoadingRole(false);
-            })
-            .catch(() => {
-                setLoadingRole(false);
-            });
+            }
+        };
+
+        fetchUserRole();
     }, [user, axiosSecure]);
 
     const handleForm = async (data) => {
@@ -52,7 +55,6 @@ const AddLesson = () => {
 
                 const imgUploadURL = `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_image_host}`;
                 const imgRes = await axios.post(imgUploadURL, formData);
-
                 featuredImage = imgRes.data.data.url;
             }
 
@@ -70,9 +72,9 @@ const AddLesson = () => {
                     featuredImage,
                 },
                 metadata: {
-                    visibility: data.privacy, // ✅ renamed
+                    visibility: data.privacy,
                     accessLevel: isPremium ? data.accessLevel : 'Free',
-                    readingTime, // ✅ added
+                    readingTime,
                     createdDate: new Date().toISOString(),
                     lastUpdated: new Date().toISOString(),
                 },
@@ -94,12 +96,12 @@ const AddLesson = () => {
             toast.success('Lesson published successfully 🎉');
             reset();
         } catch (error) {
-            console.error(error);
+            console.error('Failed to publish lesson:', error);
             toast.error('Failed to publish lesson');
         }
     };
 
-    if (loading) {
+    if (loading || axiosLoading || loadingRole) {
         return <Loading />;
     }
 
@@ -194,26 +196,19 @@ const AddLesson = () => {
 
                         {/* Access Level */}
                         <div className="relative group">
-                            {loadingRole ? (
-                                <div className="h-12 rounded-lg bg-black/10 dark:bg-white/10 animate-pulse" />
-                            ) : (
-                                <>
-                                    <select
-                                        {...register('accessLevel')}
-                                        className="select w-full h-12 pl-4 pr-9 rounded-lg border-2 border-black/20 dark:border-[#3b5445] bg-white dark:bg-[#1c2720]"
-                                    >
-                                        <option value="Free">Free</option>
-                                        <option value="Premium" disabled={!isPremium}>
-                                            Premium
-                                        </option>
-                                    </select>
+                            <select
+                                {...register('accessLevel')}
+                                className="select w-full h-12 pl-4 pr-9 rounded-lg border-2 border-black/20 dark:border-[#3b5445] bg-white dark:bg-[#1c2720]"
+                                disabled={!isPremium}
+                            >
+                                <option value="Free">Free</option>
+                                <option value="Premium">Premium</option>
+                            </select>
 
-                                    {!isPremium && (
-                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white text-sm px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap">
-                                            Upgrade to Premium to create paid lessons
-                                        </div>
-                                    )}
-                                </>
+                            {!isPremium && (
+                                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white text-sm px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap">
+                                    Upgrade to Premium to create paid lessons
+                                </div>
                             )}
                         </div>
                     </div>

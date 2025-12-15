@@ -1,84 +1,113 @@
-import React from "react";
-import {
-    MdAdd,
-    MdVisibility,
-    MdEdit,
-    MdDelete,
-} from "react-icons/md";
+import React, { useEffect, useState } from "react";
+import { MdAdd, MdVisibility, MdEdit, MdDelete } from "react-icons/md";
+import useAxiosSecure from "../../../Hooks/useAxiosSecure";
 import { Link } from "react-router";
 
 const MyLessons = () => {
-    return (
-        <div>
-            <main className="grow py-8 px-4 sm:px-6">
+  const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
+  const [lessons, setLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-                {/* Top Bar */}
-                <div className="flex flex-wrap justify-between items-center gap-4 p-4 mb-6">
-                    <p className="text-4xl font-black text-black dark:text-white">
-                        My Lessons
-                    </p>
+  useEffect(() => {
+    if (!axiosLoading && axiosSecure) {
+      // Only fetch when axiosSecure is ready
+      const fetchLessons = async () => {
+        try {
+          const res = await axiosSecure.get("/my-lessons");
+          setLessons(res.data);
+        } catch (error) {
+          console.error("Failed to fetch lessons:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchLessons();
+    }
+  }, [axiosSecure, axiosLoading]);
 
-                    <button className="flex items-center gap-2 rounded-lg h-10 px-5 bg-primary text-white font-bold hover:opacity-90">
-                        <MdAdd className="text-lg" />
-                        <span>Create New Lesson</span>
-                    </button>
-                </div>
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this lesson?")) return;
 
-                {/* Table Container */}
-                <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-base-300 shadow-sm">
-                    <table className="min-w-[800px] w-full bg-white dark:bg-base-200">
-                        <thead className="bg-gray-50 dark:bg-base-300">
-                            <tr className="border-b border-gray-200 dark:border-base-300">
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Lesson Title</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Visibility</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Created</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Reactions</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Saves</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Actions</th>
-                            </tr>
-                        </thead>
+    try {
+      await axiosSecure.delete(`/lessons/${id}`);
+      setLessons((prev) => prev.filter((l) => l._id !== id));
+    } catch (error) {
+      console.error("Failed to delete lesson:", error);
+    }
+  };
 
-                        <tbody className="divide-y divide-gray-200 dark:divide-base-300">
-                            {/* Row */}
-                            <tr className="hover:bg-gray-50 dark:hover:bg-base-100 transition-colors">
-                                <td className="px-4 py-4 text-black dark:text-white font-medium">
-                                    The Art of Active Listening
-                                </td>
+  if (loading || axiosLoading) {
+    return <div className="p-8 text-center">Loading lessons...</div>;
+  }
 
-                                <td className="px-4 py-4">
-                                    <div className="badge badge-primary badge-sm">
-                                        Published
-                                    </div>
-                                </td>
+  return (
+    <main className="grow py-8 px-4 sm:px-6">
+      {/* Top Bar */}
+      <div className="flex flex-wrap justify-between items-center gap-4 p-4 mb-6">
+        <p className="text-4xl font-black text-black dark:text-white">My Lessons</p>
+        <Link
+          to="/addlesson"
+          className="flex items-center gap-2 rounded-lg h-10 px-5 bg-primary text-white font-bold hover:opacity-90"
+        >
+          <MdAdd className="text-lg" />
+          <span>Create New Lesson</span>
+        </Link>
+      </div>
 
-                                <td className="px-4 py-4 text-gray-700 dark:text-gray-300">Public</td>
-                                <td className="px-4 py-4 text-gray-700 dark:text-gray-300">2023-10-26</td>
-                                <td className="px-4 py-4 text-gray-700 dark:text-gray-300">1.2k</td>
-                                <td className="px-4 py-4 text-gray-700 dark:text-gray-300">450</td>
+      {/* Table */}
+      <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-base-300 shadow-sm">
+        <table className="min-w-[800px] w-full bg-white dark:bg-base-200">
+          <thead className="bg-gray-50 dark:bg-base-300">
+            <tr className="border-b border-gray-200 dark:border-base-300">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Lesson Title</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Visibility</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Created</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Reactions</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Saves</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600 dark:text-gray-300">Actions</th>
+            </tr>
+          </thead>
 
-                                <td className="px-4 py-4">
-                                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                        <button className="btn btn-ghost btn-xs">
-                                            <MdVisibility className="text-lg" />
-                                        </button>
-                                        <Link to={'/updatelesson'} className="btn btn-ghost btn-xs">
-                                            <MdEdit className="text-lg" />
-                                        </Link>
-                                        <button className="btn btn-ghost btn-xs text-red-500">
-                                            <MdDelete className="text-lg" />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            {/* Add your other rows the same way */}
-                        </tbody>
-                    </table>
-                </div>
-            </main>
-        </div>
-    );
+          <tbody className="divide-y divide-gray-200 dark:divide-base-300">
+            {lessons.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-4 text-center text-gray-500">
+                  No lessons found.
+                </td>
+              </tr>
+            ) : (
+              lessons.map((lesson) => (
+                <tr key={lesson._id} className="hover:bg-gray-50 dark:hover:bg-base-100">
+                  <td className="px-4 py-4 font-medium">{lesson.lessonInfo.title}</td>
+                  <td className="px-4 py-4">
+                    <div className="badge badge-primary badge-sm">{lesson.metadata.accessLevel}</div>
+                  </td>
+                  <td className="px-4 py-4">{lesson.metadata.visibility}</td>
+                  <td className="px-4 py-4">{lesson.metadata.createdDate?.slice(0, 10)}</td>
+                  <td className="px-4 py-4">{lesson.stats?.likes || 0}</td>
+                  <td className="px-4 py-4">{lesson.stats?.favorites || 0}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex gap-2">
+                      <Link to={`/lessondetails/${lesson._id}`} className="btn btn-ghost btn-sm">
+                        <MdVisibility size={20} />
+                      </Link>
+                      <Link to={`/updatelesson/${lesson._id}`} className="btn btn-ghost btn-sm">
+                        <MdEdit size={20} />
+                      </Link>
+                      <button onClick={() => handleDelete(lesson._id)} className="btn btn-ghost btn-sm text-red-500">
+                        <MdDelete size={20} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  );
 };
 
 export default MyLessons;

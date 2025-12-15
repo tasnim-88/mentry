@@ -11,7 +11,7 @@ import { Link, useParams } from 'react-router';
 
 const LessonDetails = () => {
     const { id } = useParams();
-    const axiosSecure = useAxiosSecure();
+    const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
 
     const { data, isLoading } = useQuery({
         queryKey: ['lessonDetails', id],
@@ -21,7 +21,7 @@ const LessonDetails = () => {
         }
     });
 
-    if (isLoading) {
+    if (isLoading || axiosLoading) {
         return <Loading />;
     }
 
@@ -50,7 +50,7 @@ const LessonDetails = () => {
 
                     {/* Featured Image */}
                     <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-80">
-                        <img src={featuredImage} alt={title} />
+                        <img src={featuredImage || 'https://via.placeholder.com/96'} alt={title} />
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-8 mt-8">

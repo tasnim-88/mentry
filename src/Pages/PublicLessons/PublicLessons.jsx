@@ -10,11 +10,12 @@ import Loading from '../../Components/Loading/Loading';
 
 const PublicLessons = () => {
 
-    const { user } = useAuth(); 
-    const axiosSecure = useAxiosSecure();
+    const { user } = useAuth();
+    const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
 
     const { data: lessons = [], isLoading } = useQuery({
         queryKey: ['lessons'],
+        enabled: !axiosLoading,
         queryFn: async () => {
             const res = await axiosSecure.get('/lessons');
             return res.data;
@@ -26,7 +27,7 @@ const PublicLessons = () => {
     const [tone, setTone] = useState("All Tones");
     const [sort, setSort] = useState("Newest");
 
-   
+
     const [currentPage, setCurrentPage] = useState(1);
     const lessonsPerPage = 6;
 
@@ -35,7 +36,7 @@ const PublicLessons = () => {
         return txt.length > 120 ? txt.slice(0, 120) + "..." : txt;
     };
 
-   
+
     const filteredLessons = useMemo(() => {
         return lessons
             .filter(l => {
@@ -62,7 +63,7 @@ const PublicLessons = () => {
     }, [lessons, search, category, tone, sort]);
 
 
-    
+
     const totalPages = Math.ceil(filteredLessons.length / lessonsPerPage);
     const indexOfLast = currentPage * lessonsPerPage;
     const indexOfFirst = indexOfLast - lessonsPerPage;
@@ -74,7 +75,7 @@ const PublicLessons = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    if(isLoading){
+    if (isLoading) {
         return <Loading></Loading>
     }
 
