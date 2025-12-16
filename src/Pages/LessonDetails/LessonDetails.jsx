@@ -1,39 +1,438 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BsTwitterX } from 'react-icons/bs';
 import { CiFlag1 } from 'react-icons/ci';
 import { FaFacebook, FaLinkedin } from 'react-icons/fa';
-import { MdBookmarkBorder, MdFavoriteBorder, MdOutlineTimer, MdOutlineUpdate, MdOutlineWorkspacePremium, MdPictureAsPdf, MdVisibility } from 'react-icons/md';
+import { MdBookmarkBorder, MdFavoriteBorder, MdOutlineTimer, MdOutlineUpdate, MdOutlineWorkspacePremium, MdVisibility } from 'react-icons/md';
 import { SlCalender } from 'react-icons/sl';
 import useAxiosSecure from '../../Hooks/useAxiosSecure';
-import { useQuery } from '@tanstack/react-query';
-import Loading from '../../Components/Loading/Loading';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Swal from 'sweetalert2';
 import { Link, useParams } from 'react-router';
+import useAuth from '../../Hooks/useAuth';
+import Loading from '../../Components/Loading/Loading';
+
+
+// Define Report Reasons
+const REPORT_REASONS = [
+    'Inappropriate Content',
+    'Hate Speech or Harassment',
+    'Misleading or False Information',
+    'Spam or Promotional Content',
+    'Sensitive or Disturbing Content',
+    'Other'
+];
+
+// Helper to format date relative to now (e.g., "2 days ago")
+const timeSince = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    let interval = Math.floor(seconds / 31536000);
+    if (interval > 1) return interval + " years ago";
+    interval = Math.floor(seconds / 2592000);
+    if (interval > 1) return interval + " months ago";
+    interval = Math.floor(seconds / 86400);
+    if (interval > 1) return interval + " days ago";
+    interval = Math.floor(seconds / 3600);
+    if (interval > 1) return interval + " hours ago";
+    interval = Math.floor(seconds / 60);
+    if (interval > 1) return interval + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+}
+
+
+// --- Comment Card Component ---
+const CommentCard = ({ comment }) => {
+    // Assuming comment structure: { _id, content, createdAt, author: { name, profileImage } }
+    const { content, createdAt, author } = comment;
+
+    return (
+        <div className="flex items-start gap-4">
+            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 overflow-hidden shrink-0">
+                <img src={author.profileImage || 'https://via.placeholder.com/80'} alt={`${author.name}'s avatar`} className='w-full h-full object-cover' />
+            </div>
+            <div className="flex-1">
+                <div className="flex items-baseline gap-2">
+                    <p className="font-bold text-black dark:text-white">{author.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{timeSince(createdAt)}</p>
+                </div>
+                {/* Ensure content preserves line breaks if present */}
+                <p className="text-gray-800 dark:text-gray-300 mt-1 whitespace-pre-line">{content}</p>
+            </div>
+        </div>
+    );
+};
+
 
 const LessonDetails = () => {
     const { id } = useParams();
     const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
+    const queryClient = useQueryClient();
+    const { user, loading: userLoading } = useAuth();
 
-    const { data, isLoading } = useQuery({
+    // State for the comment input field
+    const [newCommentText, setNewCommentText] = useState('');
+
+    // --- Data Fetching ---
+
+    // 1. Fetch Lesson Details
+    const { data: lessonData, isLoading: lessonLoading } = useQuery({
         queryKey: ['lessonDetails', id],
         queryFn: async () => {
             const res = await axiosSecure.get(`/lessondetails/${id}`);
-            return res.data; // { lesson, isPremiumUser }
-        }
+            return res.data;
+        },
+        enabled: !!id,
+        staleTime: 1000 * 60 * 5,
     });
 
-    if (isLoading || axiosLoading) {
+    // 2. Fetch Author Profile
+    const authorUid = lessonData?.lesson?.author?.uid;
+    const { data: authorProfile, isLoading: authorLoading } = useQuery({
+        queryKey: ['authorProfile', authorUid],
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/users/${authorUid}`);
+            return res.data;
+        },
+        enabled: !!authorUid && !!lessonData,
+        staleTime: 1000 * 60 * 10,
+    });
+
+    // 3. Fetch Comments
+    const { data: comments, isLoading: commentsLoading } = useQuery({
+        queryKey: ['lessonComments', id],
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/lesson/${id}/comments`);
+            // The server returns { comments: [...] }
+            return res.data.comments;
+        },
+        enabled: !!id,
+        staleTime: 1000 * 30,
+    });
+
+    // 4. Fetch Similar Lessons
+    const category = lessonData?.lesson?.lessonInfo?.category;
+    const tone = lessonData?.lesson?.lessonInfo?.tone;
+    const { data: similarLessons, isLoading: similarLoading } = useQuery({
+        queryKey: ['similarLessons', id, category, tone],
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/similar-lessons/${id}`, {
+                params: { category, tone }
+            });
+            return res.data;
+        },
+        enabled: !!lessonData && !!(category || tone),
+    });
+
+    // --- Mutations ---
+
+    // Like/Unlike Mutation
+    const likeMutation = useMutation({
+        mutationFn: (action) => {
+            return axiosSecure.post(`/lesson/${id}/like`, { action });
+        },
+        onMutate: async (newAction) => {
+            await queryClient.cancelQueries({ queryKey: ['lessonDetails', id] });
+            const previousLessonData = queryClient.getQueryData(['lessonDetails', id]);
+            const isLiking = newAction === 'like';
+
+            const newStats = {
+                ...previousLessonData.lesson.stats,
+                likes: previousLessonData.lesson.stats.likes + (isLiking ? 1 : -1),
+            };
+
+            queryClient.setQueryData(['lessonDetails', id], (oldData) => {
+                return {
+                    ...oldData,
+                    lesson: {
+                        ...oldData.lesson,
+                        stats: newStats,
+                        userHasLiked: isLiking,
+                    },
+                };
+            });
+            return { previousLessonData };
+        },
+        onError: (err, newAction, context) => {
+            queryClient.setQueryData(['lessonDetails', id], context.previousLessonData);
+            Swal.fire({ icon: 'error', title: 'Action Failed', text: `Failed to ${newAction}: ${err.message}.` });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['lessonDetails', id] });
+        },
+    });
+
+    // Favorite/Unfavorite Mutation
+    const favoriteMutation = useMutation({
+        mutationFn: (action) => {
+            return axiosSecure.post(`/lesson/${id}/favorite`, { action });
+        },
+        onMutate: async (newAction) => {
+            await queryClient.cancelQueries({ queryKey: ['lessonDetails', id] });
+            const previousLessonData = queryClient.getQueryData(['lessonDetails', id]);
+            const isFavoriting = newAction === 'favorite';
+
+            const newStats = {
+                ...previousLessonData.lesson.stats,
+                favorites: previousLessonData.lesson.stats.favorites + (isFavoriting ? 1 : -1),
+            };
+
+            queryClient.setQueryData(['lessonDetails', id], (oldData) => {
+                return {
+                    ...oldData,
+                    lesson: {
+                        ...oldData.lesson,
+                        stats: newStats,
+                        userHasFavorited: isFavoriting,
+                    },
+                };
+            });
+            return { previousLessonData };
+        },
+        onError: (err, newAction, context) => {
+            queryClient.setQueryData(['lessonDetails', id], context.previousLessonData);
+            Swal.fire({ icon: 'error', title: 'Action Failed', text: `Failed to ${newAction}: ${err.message}.` });
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['lessonDetails', id] });
+            queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+            queryClient.invalidateQueries({ queryKey: ['myFavorites'] });
+        },
+    });
+
+    // Report Mutation
+    const reportMutation = useMutation({
+        mutationFn: (reportData) => {
+            return axiosSecure.post(`/lesson/${id}/report`, reportData);
+        },
+        onSuccess: () => {
+            Swal.fire({
+                icon: 'success',
+                title: 'Report Submitted!',
+                text: 'Your report will be reviewed shortly.',
+                confirmButtonColor: '#34d399',
+            });
+        },
+        onError: (err) => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Report Failed',
+                text: `Could not submit report: ${err.response?.data?.message || err.message}`,
+                confirmButtonColor: '#ef4444',
+            });
+        },
+    });
+
+    // Comment Mutation
+    const commentMutation = useMutation({
+        mutationFn: (commentData) => {
+            return axiosSecure.post(`/lesson/${id}/comments`, commentData);
+        },
+        onSuccess: () => {
+            setNewCommentText(''); // Clear the input field
+            // Invalidate and refetch comments to update the list immediately
+            queryClient.invalidateQueries({ queryKey: ['lessonComments', id] });
+            Swal.fire({
+                icon: 'success',
+                title: 'Comment Posted!',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true,
+            });
+        },
+        onError: (err) => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to Post Comment',
+                text: `Error: ${err.response?.data?.message || err.message}`,
+                confirmButtonColor: '#ef4444',
+            });
+        },
+    });
+
+
+    // --- Interaction Handlers ---
+
+    const handleReport = () => {
+        if (reportMutation.isPending) return;
+
+        Swal.fire({
+            title: 'Report This Lesson',
+            html: `
+                <div class="text-left dark:text-gray-300">
+                    <p class="mb-4">Please select the most appropriate reason for reporting this content:</p>
+                    
+                    <label for="swal-reason" class="block text-sm font-medium mb-1">Reason:</label>
+                    <select id="swal-reason" class="swal2-select w-full p-2 border rounded-lg dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                        ${REPORT_REASONS.map(reason => `<option value="${reason}">${reason}</option>`).join('')}
+                    </select>
+
+                    <textarea
+                        id="swal-other-reason"
+                        placeholder="Please provide details for 'Other' reason..."
+                        rows="3"
+                        class="swal2-textarea mt-3 hidden w-full p-2 border rounded-lg dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                    ></textarea>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Submit Report',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            preConfirm: () => {
+                const reasonSelect = document.getElementById('swal-reason');
+                const reason = reasonSelect.value;
+                const otherReasonTextarea = document.getElementById('swal-other-reason');
+                let finalReason = reason;
+
+                if (reason === 'Other') {
+                    const otherText = otherReasonTextarea.value.trim();
+                    if (!otherText) {
+                        Swal.showValidationMessage('Please provide details for the "Other" reason.');
+                        return false;
+                    }
+                    finalReason = `Other: ${otherText}`;
+                }
+                return finalReason;
+            },
+            didOpen: () => {
+                const reasonSelect = document.getElementById('swal-reason');
+                const otherReasonTextarea = document.getElementById('swal-other-reason');
+
+                const toggleOtherVisibility = () => {
+                    if (reasonSelect.value === 'Other') {
+                        otherReasonTextarea.classList.remove('hidden');
+                    } else {
+                        otherReasonTextarea.classList.add('hidden');
+                    }
+                };
+
+                toggleOtherVisibility();
+                reasonSelect.addEventListener('change', toggleOtherVisibility);
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const finalReason = result.value;
+                if (finalReason) {
+                    reportMutation.mutate({ reason: finalReason });
+                }
+            }
+        });
+    };
+
+    const handleToggleLike = () => {
+        if (!user) {
+            Swal.fire({ icon: 'info', title: 'Login Required', text: 'You must be logged in to like a lesson.' });
+            return;
+        }
+        const currentUserHasLiked = lessonData?.userHasLiked;
+        const action = currentUserHasLiked ? 'unlike' : 'like';
+        if (likeMutation.isPending) return;
+        likeMutation.mutate(action);
+    };
+
+    const handleToggleFavorite = () => {
+        if (!user) {
+            Swal.fire({ icon: 'info', title: 'Login Required', text: 'You must be logged in to favorite a lesson.' });
+            return;
+        }
+        const currentUserHasFavorited = lessonData?.userHasFavorited;
+        const action = currentUserHasFavorited ? 'unfavorite' : 'favorite';
+        if (favoriteMutation.isPending) return;
+        favoriteMutation.mutate(action);
+    };
+
+    const handleShare = () => {
+        const shareUrl = window.location.href;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            Swal.fire({
+                icon: 'info',
+                title: 'Link Copied',
+                text: 'Lesson URL copied to clipboard!',
+                showConfirmButton: false,
+                timer: 1500,
+            });
+        });
+    };
+
+    // Submit Comment Handler
+    const handleSubmitComment = (e) => {
+        e.preventDefault();
+        const content = newCommentText.trim();
+
+        if (!user) {
+            Swal.fire({ icon: 'info', title: 'Login Required', text: 'You must be logged in to post a comment.' });
+            return;
+        }
+
+        if (!content) {
+            Swal.fire({ icon: 'warning', title: 'Comment Empty', text: 'Please write something before posting.' });
+            return;
+        }
+
+        commentMutation.mutate({ content });
+    };
+
+    // --- Loading and Error Checks ---
+    if (lessonLoading || axiosLoading || authorLoading || commentsLoading || userLoading) {
         return <Loading />;
     }
 
-    const { lesson, isPremiumUser } = data;
-    const { title, category, description, featuredImage, tone, visibility } = lesson.lessonInfo;
-    const { name, totalLessons, profileImage } = lesson.author;
-    const { views, likes, favorites } = lesson.stats;
+    if (!lessonData || !lessonData.lesson) {
+        return <div className="text-center p-10 dark:text-white">Lesson not found or access denied.</div>;
+    }
+
+    // --- Data Destructuring ---
+    const { lesson, isPremiumUser } = lessonData;
+    const { title, description, featuredImage } = lesson.lessonInfo;
+
+    // Author details
+    const currentTotalLessons = authorProfile?.totalLessons ?? lesson.author.totalLessons ?? 0;
+    const currentAuthorName = authorProfile?.displayName || lesson.author.name;
+    const currentProfileImage = authorProfile?.photoURL || lesson.author.profileImage;
+
+    // Engagement status
+    const currentUserHasLiked = lessonData.userHasLiked || false;
+    const currentUserHasFavorited = lessonData.userHasFavorited || false;
+
+    // Stats calculation
+    const likesCount = lesson.stats.likes || 0;
+    const favoritesCount = lesson.stats.favorites || 0;
+    const viewsCount = lesson.stats.views || 0;
+
+    // Metadata
     const { createdDate, lastUpdated, readingTime } = lesson.metadata;
 
-    // Determine access
-    const isPremiumLesson = visibility === 'premium';
+    // Access control
+    const isPremiumLesson = lesson.metadata.accessLevel === 'Premium';
     const canAccess = !isPremiumLesson || isPremiumUser;
+
+    // Formatting utility
+    const formatCount = (count) => (count / 1000) >= 1 ? (count / 1000).toFixed(1) + 'K' : count;
+    const formattedLikes = formatCount(likesCount);
+    const formattedFavorites = formatCount(favoritesCount);
+    const formattedViews = formatCount(viewsCount);
+
+    // Helper component for the lesson card (for similar lessons)
+    const LessonCard = ({ lessonItem }) => (
+        <div className="bg-gray-100 dark:bg-white/5 rounded-xl overflow-hidden group">
+            <div className="w-full h-40 bg-cover bg-center">
+                <img src={lessonItem.lessonInfo.featuredImage || 'https://via.placeholder.com/400x160'} alt={lessonItem.lessonInfo.title} className='w-full h-full object-cover' />
+            </div>
+            <div className="p-4">
+                <h3 className="text-lg font-bold text-black dark:text-white group-hover:text-primary transition-colors">{lessonItem.lessonInfo.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{lessonItem.lessonInfo.category} - {lessonItem.lessonInfo.tone}</p>
+                <Link
+                    to={`/lessondetails/${lessonItem._id}`}
+                    className="mt-4 inline-flex items-center text-primary text-sm font-medium hover:underline"
+                >
+                    Read Lesson
+                </Link>
+            </div>
+        </div>
+    );
 
     return (
         <div>
@@ -41,152 +440,177 @@ const LessonDetails = () => {
                 <div className="layout-content-container flex flex-col w-full max-w-6xl">
                     {/* Breadcrumb */}
                     <div className="flex flex-wrap gap-2 py-4">
-                        <a className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm font-medium leading-normal" href="#">Home</a>
+                        <Link className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm font-medium leading-normal" to="/">Home</Link>
                         <span className="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal">/</span>
-                        <a className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm font-medium leading-normal" href="#">Community Lessons</a>
+                        <Link className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm font-medium leading-normal" to="/lessons">Community Lessons</Link>
                         <span className="text-gray-500 dark:text-gray-400 text-sm font-medium leading-normal">/</span>
                         <span className="text-black dark:text-white text-sm font-medium leading-normal">{title}</span>
                     </div>
 
                     {/* Featured Image */}
                     <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden rounded-xl min-h-80">
-                        <img src={featuredImage || 'https://via.placeholder.com/96'} alt={title} />
+                        <img src={featuredImage || 'https://via.placeholder.com/960x320'} alt={title} className='w-full object-cover min-h-80' />
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-8 mt-8">
-                        {/* Left Column */}
+                        {/* Left Column (Content, Actions, Comments) */}
                         <div className="w-full lg:w-2/3">
+                            {/* Lesson Information Section (1) */}
                             <h1 className="text-black dark:text-white tracking-tight text-4xl font-bold leading-tight pb-3">{title}</h1>
                             <div className="flex gap-3 pb-6 flex-wrap">
                                 <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary/20 pl-4 pr-4">
-                                    <p className="text-primary text-sm font-medium leading-normal">{category}</p>
+                                    <p className="text-primary text-sm font-medium leading-normal">{lesson.lessonInfo.category}</p>
                                 </div>
                                 <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-primary/20 pl-4 pr-4">
-                                    <p className="text-primary text-sm font-medium leading-normal">{tone}</p>
+                                    <p className="text-primary text-sm font-medium leading-normal">{lesson.lessonInfo.tone}</p>
                                 </div>
+                                {isPremiumLesson && (
+                                    <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-yellow-500/20 pl-4 pr-4">
+                                        <MdOutlineWorkspacePremium className="text-yellow-500" />
+                                        <p className="text-yellow-500 text-sm font-medium leading-normal">Premium</p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Description */}
                             <div className="relative">
-                                <div className={`prose prose-lg dark:prose-invert text-gray-800 dark:text-gray-300 space-y-4 ${!canAccess ? 'blur-lg select-none' : ''}`}>
-                                    {description}
+                                <div className={`prose prose-lg dark:prose-invert text-gray-800 dark:text-gray-300 space-y-4 ${!canAccess ? 'blur-md select-none' : ''}`}>
+                                    <div dangerouslySetInnerHTML={{ __html: description }} />
                                 </div>
 
+                                {/* Upgrade Banner (Premium check) */}
                                 {!canAccess && (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background-dark/70 rounded-xl p-8 text-center backdrop-blur-sm">
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 rounded-xl p-8 text-center backdrop-blur-sm">
                                         <MdOutlineWorkspacePremium className="text-5xl text-primary mb-4" />
                                         <h3 className="text-2xl font-bold text-white mb-2">Unlock this Premium Lesson</h3>
                                         <p className="text-gray-300 mb-6 max-w-sm">
                                             Upgrade your plan to get full access to this lesson and hundreds of others from creators around the world.
                                         </p>
-                                        <button className="flex min-w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-black text-base font-bold leading-normal tracking-[0.015em]">
+                                        {/* Redirect to pricing page */}
+                                        <Link to="/pricing" className="flex min-w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-black text-base font-bold leading-normal tracking-[0.015em]">
                                             <span className="truncate">Upgrade Now</span>
-                                        </button>
+                                        </Link>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Action Buttons */}
+                            {/* Interaction Buttons */}
                             <div className="flex flex-wrap items-center gap-2 border-y border-white/10 py-4 my-8">
-                                <button className="flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
-                                    <MdFavoriteBorder className="text-xl" /> Like
+                                {/* Like Button */}
+                                <button
+                                    onClick={handleToggleLike}
+                                    disabled={likeMutation.isPending || !user}
+                                    className={`flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium 
+                                        ${currentUserHasLiked ? 'bg-red-500/20 text-red-500 dark:bg-red-500/30 dark:text-red-400' : 'hover:bg-gray-300 dark:hover:bg-white/20'}
+                                        ${(likeMutation.isPending || !user) ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}
+                                >
+                                    <MdFavoriteBorder className="text-xl" /> {currentUserHasLiked ? 'Liked' : 'Like'}
                                 </button>
-                                <button className="flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
-                                    <MdBookmarkBorder className="text-xl" /> Save to Favorites
+                                {/* Save to Favorites Button */}
+                                <button
+                                    onClick={handleToggleFavorite}
+                                    disabled={favoriteMutation.isPending || !user}
+                                    className={`flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium 
+                                        ${currentUserHasFavorited ? 'bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary' : 'hover:bg-gray-300 dark:hover:bg-white/20'}
+                                        ${(favoriteMutation.isPending || !user) ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}
+                                >
+                                    <MdBookmarkBorder className="text-xl" /> {currentUserHasFavorited ? 'Saved' : 'Save to Favorites'}
                                 </button>
-                                <button className="flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
-                                    <MdPictureAsPdf className="text-xl" /> Export as PDF
-                                </button>
-
+                                {/* Share Buttons */}
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 pl-2">Share:</span>
-                                    <a className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20" href="#"><FaFacebook size={20} /></a>
-                                    <a className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20" href="#"><BsTwitterX size={20} /></a>
-                                    <a className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20" href="#"><FaLinkedin size={20} /></a>
+                                    <button onClick={handleShare} className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 cursor-pointer" title="Copy Link"><FaLinkedin size={20} /></button>
+                                    <a className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20" href={`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`} target="_blank" rel="noopener noreferrer"><FaFacebook size={20} /></a>
+                                    <a className="flex items-center justify-center rounded-lg size-10 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20" href={`https://twitter.com/intent/tweet?url=${window.location.href}&text=${encodeURIComponent(title)}`} target="_blank" rel="noopener noreferrer"><BsTwitterX size={20} /></a>
                                 </div>
 
                                 <div className="grow"></div>
-                                <button className="flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
-                                    <CiFlag1 className="text-xl" /> Report
+                                {/* Report Lesson Button */}
+                                <button onClick={handleReport} disabled={reportMutation.isPending} className="flex items-center gap-2 rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-red-500 text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20 disabled:opacity-50">
+                                    <CiFlag1 className="text-xl" /> {reportMutation.isPending ? 'Reporting...' : 'Report'}
                                 </button>
                             </div>
 
                             {/* Comments Section */}
                             <div>
-                                <h2 className="text-2xl font-bold text-black dark:text-white mb-6">Comments (3)</h2>
-                                {/* Comment input */}
-                                <div className="flex items-start gap-4 mb-6">
-                                    <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBzyWsE18FY2nxSJ78VWLAD4S94Ufps1jdJLXcQwG03a8aUObciSp2nF7QcRx_n4QhVD56dJ0cnZPG8_1Nfwt99S27kicpoYWy3_J1eEEbvvt_KhN4if-8KILnDqe3cBHF8cxJHmIj-u3Nwg6xp3-8KWnVKrW1ifCxdxaww9LPexCwSy5ALBZQ3rCZ1323m_joP9ZUvMXDLVl-Pr3eyyrkpKHgiYc8PKulA3Y1WUPEQUBwIp9INCtJE27QcG4OlglKKF_CTowlcX50')]" />
-                                    <div className="flex-1">
-                                        <textarea className="w-full rounded-lg bg-gray-200 dark:bg-white/5 border-transparent focus:border-primary focus:ring-primary text-black dark:text-white" placeholder="Add your thoughts..." rows="3"></textarea>
-                                        <button className="mt-2 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-black text-sm font-bold">Post Comment</button>
-                                    </div>
-                                </div>
-                                {/* Existing comments */}
-                                <div>
-                                    <h2 className="text-2xl font-bold text-black dark:text-white mb-6">Comments (3)</h2>
-                                    <div className="flex items-start gap-4 mb-6">
-                                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBzyWsE18FY2nxSJ78VWLAD4S94Ufps1jdJLXcQwG03a8aUObciSp2nF7QcRx_n4QhVD56dJ0cnZPG8_1Nfwt99S27kicpoYWy3_J1eEEbvvt_KhN4if-8KILnDqe3cBHF8cxJHmIj-u3Nwg6xp3-8KWnVKrW1ifCxdxaww9LPexCwSy5ALBZQ3rCZ1323m_joP9ZUvMXDLVl-Pr3eyyrkpKHgiYc8PKulA3Y1WUPEQUBwIp9INCtJE27QcG4OlglKKF_CTowlcX50')]" data-alt="Current user avatar"></div>
+                                <h2 className="text-2xl font-bold text-black dark:text-white mb-6">Comments ({comments?.length ?? 0})</h2>
+
+                                {/* Comment Input */}
+                                {user ? (
+                                    <form onSubmit={handleSubmitComment} className="flex items-start gap-4 mb-6">
+                                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 overflow-hidden shrink-0">
+                                            <img src={user.photoURL || 'https://via.placeholder.com/80'} alt="Your avatar" className='w-full h-full object-cover' />
+                                        </div>
                                         <div className="flex-1">
-                                            <textarea className="w-full rounded-lg bg-gray-200 dark:bg-white/5 border-transparent focus:border-primary focus:ring-primary text-black dark:text-white" placeholder="Add your thoughts..." rows="3"></textarea>
-                                            <button className="mt-2 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-black text-sm font-bold">Post Comment</button>
+                                            <textarea
+                                                className="w-full rounded-lg bg-gray-200 dark:bg-white/5 border-transparent focus:border-primary focus:ring-primary text-black dark:text-white"
+                                                placeholder="Add your thoughts..."
+                                                rows="3"
+                                                value={newCommentText}
+                                                onChange={(e) => setNewCommentText(e.target.value)}
+                                                disabled={commentMutation.isPending}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={commentMutation.isPending || !newCommentText.trim()}
+                                                className="mt-2 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-black text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {commentMutation.isPending ? 'Posting...' : 'Post Comment'}
+                                            </button>
                                         </div>
-                                    </div>
-                                    <div className="space-y-6">
-                                        <div className="flex items-start gap-4">
-                                            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuCpSCcdN2gkd0kS5yVvoikSjiowAEZy1yzOjC-bPEYl9ZswjdjqCMnY4dpF48lTa8Op6kOpylhfUZuOc1G3aaIfdB9DHekVNFDLzv424JnQe48qq2JhGQ8X_V9VGgQI0zzYRZVwehhYnsBF4rsH5D9rxOWRbga9JrbJwG6EX-aJHp7OyASz1CUhqpGtRKEhiQ6WX5Wd8j2Z2vgpXDB804yreM73c09Fldc-cB2jauj9O_ojVyNhgyccmztqgoNZnkNX0tVwerEdlMg')]" data-alt="Commenter Jane Doe's avatar"></div>
-                                            <div className="flex-1">
-                                                <div className="flex items-baseline gap-2">
-                                                    <p className="font-bold text-black dark:text-white">Jane Doe</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">2 days ago</p>
-                                                </div>
-                                                <p className="text-gray-800 dark:text-gray-300 mt-1">This is a wonderful perspective. It reminds me to slow down and appreciate the journey.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-start gap-4">
-                                            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDvnLjZfCsHe3NGzOvy165i5hG74B0kkmbudR4_A2kL5oJcViiOEhDRJgMlpmhC4R5ss9F_OVttPSKP5hEmLIDgEcPBc7yuZHPm7WZa-H6v1xgpVv1bCAnK_Lj0ARPCSeBFbMDOy38nVADPRdNEQE6DcZy4IaTiNthrQpL-LRKLe7nQelN5IY-IycZp8LSHZshplXc8uVsloctq3elha_OzzdwN94mpriGtHR_EmF_tlY_m7Vrxte9O94eDskBEk4nhFj0BCPR2Cmg')]" data-alt="Commenter Alex Smith's avatar"></div>
-                                            <div className="flex-1">
-                                                <div className="flex items-baseline gap-2">
-                                                    <p className="font-bold text-black dark:text-white">{name}</p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">1 day ago</p>
-                                                </div>
-                                                <p className="text-gray-800 dark:text-gray-300 mt-1">Great lesson! The mindfulness techniques are especially helpful.</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    </form>
+                                ) : (
+                                    <p className="mb-6 text-gray-700 dark:text-gray-300">
+                                        Please <Link to="/login" className="text-primary hover:underline font-medium">log in</Link> to post a comment.
+                                    </p>
+                                )}
+
+                                {/* Existing comments list */}
+                                <div className="space-y-6">
+                                    {commentsLoading && <p className='text-center dark:text-gray-400'>Loading comments...</p>}
+                                    {(!commentsLoading && comments && comments.length > 0) ? (
+                                        comments.map(comment => (
+                                            <CommentCard key={comment._id} comment={comment} />
+                                        ))
+                                    ) : (
+                                        (!commentsLoading && <p className='text-center dark:text-gray-400'>Be the first to comment!</p>)
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Column */}
+                        {/* Right Column (Author Card, Metadata, Stats) */}
                         <div className="w-full lg:w-1/3 space-y-8 lg:sticky lg:top-24 self-start">
+                            {/* Author / Creator Section */}
                             <div className="bg-gray-100 dark:bg-white/5 rounded-xl p-6">
                                 <div className="flex flex-col items-center text-center">
-                                    <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-20 mb-4">
-                                        <img src={profileImage} alt={name} />
+                                    <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-20 mb-4 overflow-hidden">
+                                        <img src={currentProfileImage || 'https://via.placeholder.com/80'} alt={currentAuthorName} className='w-full h-full object-cover' />
                                     </div>
-                                    <h3 className="text-xl font-bold text-black dark:text-white">{name}</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Total {totalLessons} lessons</p>
-                                    <Link to={'/dashboard/profile'} className="mt-4 w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
-                                        View all lessons
+                                    <h3 className="text-xl font-bold text-black dark:text-white">{currentAuthorName}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Total {currentTotalLessons} lessons</p>
+                                    <Link to={`/dashboard/profile`} className="mt-4 w-full flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-white/10 text-black dark:text-white text-sm font-medium hover:bg-gray-300 dark:hover:bg-white/20">
+                                        View all lessons by this author
                                     </Link>
                                 </div>
                             </div>
 
-                            {/* Lesson metadata */}
+                            {/* Lesson Metadata */}
                             <div className="bg-gray-100 dark:bg-white/5 rounded-xl p-6 space-y-4">
                                 <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
                                     <SlCalender className="text-xl text-gray-500 dark:text-gray-400" />
                                     <div>
-                                        <p className="font-medium">Created</p>
-                                        <p className="text-gray-500 dark:text-gray-400">{createdDate}</p>
+                                        <p className="font-medium">Created Date</p>
+                                        <p className="text-gray-500 dark:text-gray-400">{new Date(createdDate).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
                                     <MdOutlineUpdate className="text-xl text-gray-500 dark:text-gray-400" />
                                     <div>
                                         <p className="font-medium">Last Updated</p>
-                                        <p className="text-gray-500 dark:text-gray-400">{lastUpdated}</p>
+                                        <p className="text-gray-500 dark:text-gray-400">{new Date(lastUpdated).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
@@ -196,54 +620,49 @@ const LessonDetails = () => {
                                         <p className="text-gray-500 dark:text-gray-400">{readingTime}</p>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
+                                    <MdVisibility className="text-xl text-gray-500 dark:text-gray-400" />
+                                    <div>
+                                        <p className="font-medium">Access</p>
+                                        <p className="text-gray-500 dark:text-gray-400">{isPremiumLesson ? 'Premium' : 'Free'}</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Stats */}
+                            {/* Stats & Engagement Section */}
                             <div className="bg-gray-100 dark:bg-white/5 rounded-xl p-6 flex justify-around">
                                 <div className="text-center">
                                     <MdVisibility className="text-3xl text-primary" />
-                                    <p className="mt-1 text-xl font-bold text-black dark:text-white">{views}</p>
+                                    <p className="mt-1 text-xl font-bold text-black dark:text-white">{formattedViews}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Views</p>
                                 </div>
                                 <div className="text-center">
                                     <MdFavoriteBorder className="text-3xl text-primary" />
-                                    <p className="mt-1 text-xl font-bold text-black dark:text-white">{likes}</p>
+                                    <p className="mt-1 text-xl font-bold text-black dark:text-white"> {formattedLikes}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Likes</p>
                                 </div>
                                 <div className="text-center">
                                     <MdBookmarkBorder className="text-3xl text-primary" />
-                                    <p className="mt-1 text-xl font-bold text-black dark:text-white">{favorites}</p>
+                                    <p className="mt-1 text-xl font-bold text-black dark:text-white">
+                                        {formattedFavorites}
+                                    </p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">Favorites</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Similar lessons */}
+                    {/* Similar and Recommended Lessons */}
                     <div className="mt-16">
                         <h2 className="text-2xl font-bold text-black dark:text-white mb-6">Similar Lessons</h2>
+                        {similarLoading && <p className='text-center dark:text-gray-300'>Loading similar lessons...</p>}
+                        {(!similarLoading && (!similarLessons || similarLessons.length === 0)) && (
+                            <p className='text-center dark:text-gray-300'>No similar lessons found.</p>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="bg-gray-100 dark:bg-white/5 rounded-xl overflow-hidden group">
-                                <div className="w-full h-40 bg-cover bg-center bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuAS215Rqikp1foaZCNNEyMLLfPFvzlaa5vkR7n_EbgQoHgkmv7cEhpPdD8Nr3e5--YOioYZME_qaIV_mNsdQVKISEEQHZsWS8ElzdyAvAOABPct629KSZjSy-lQ2kQw0ImIiY_9reAA3bM3-M9fnI_57UqMvtWDbG1C2L69dp5kCqA1qVrk4YzOBHAkKMOVLMuZMiIlHcdrOrUFNOgAEUoejJKG_rcxXOAteLUsR4219lm89c5AuV0Jd3VmAN_58VTn3ML4QhJBA3w')]" data-alt="Abstract image for Finding Joy in Small Things"></div>
-                                <div className="p-4">
-                                    <p className="font-bold text-black dark:text-white group-hover:text-primary transition-colors">Finding Joy in Small Things</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By Mark Hanson</p>
-                                </div>
-                            </div>
-                            <div className="bg-gray-100 dark:bg-white/5 rounded-xl overflow-hidden group">
-                                <div className="w-full h-40 bg-cover bg-center bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuAKoix-z4UJoES5xiwweu1LhQ3bYIjDGnzaDk76-ougkGfXGVGhdSNKRQL3A0I0Hmh8hNMD15zQeJrXOljPGKKbdI2rn135hq_F7qbV7VFzFs8d4l4Ch8e7v5eLWIoCCiQzsIDqk_69239SwgvcHTWb-XyLDNY3G7ylIHe-ljyBzTBvxg_wcEIrHRK-acBTdCwOkWLbnV7mL7qKUjOsBHOinMmkkibHo_Gy-CLibfeP2fXZR6PnBaaB_7oUJ65bmkSx9H4MkBS4vuQ')]" data-alt="Abstract image for The Power of Listening"></div>
-                                <div className="p-4">
-                                    <p className="font-bold text-black dark:text-white group-hover:text-primary transition-colors">The Power of Listening</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By Emily Carter</p>
-                                </div>
-                            </div>
-                            <div className="bg-gray-100 dark:bg-white/5 rounded-xl overflow-hidden group">
-                                <div className="w-full h-40 bg-cover bg-center bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuB590Ti7rVqCqaaVbjpYYY86oJRYAISmBbIjY1-3eq1WGUWCN3oRPO1DkZaZC01BtymkCSVtJv_8e7_LdfCVXQwDTSHPhOKmeUeZxlqBTER5bAA_CTwZfMzpSGcaoOLwQI_OT5QQM-ABRu1DZizftzfvHVSuk0e-wzkOo0BsveQ50fEu9i9AL0zk2YQsasi92_uu2yTWqZX41-MXBc-lg6CrZgbLUF2j65MYuYt0kiONjmHK38xJo3_2enRScAmSUvfL06ce749k6A')]" data-alt="Abstract image for Embracing Imperfection"></div>
-                                <div className="p-4">
-                                    <p className="font-bold text-black dark:text-white group-hover:text-primary transition-colors">Embracing Imperfection</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By Sarah Chen</p>
-                                </div>
-                            </div>
+                            {similarLessons?.map(lessonItem => (
+                                <LessonCard key={lessonItem._id} lessonItem={lessonItem} />
+                            ))}
                         </div>
                     </div>
                 </div>
