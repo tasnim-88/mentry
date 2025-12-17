@@ -1,43 +1,99 @@
 import React from 'react';
+import { Link } from 'react-router';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import { useQuery } from '@tanstack/react-query';
+import Loading from '../../../Components/Loading/Loading';
+ 
+
+// Component for a single lesson card, using your original structure
+const LessonCard = ({ lesson }) => {
+    const { _id, lessonInfo, author } = lesson;
+    const { title, featuredImage } = lessonInfo;
+    const authorName = author?.name || 'Unknown Author';
+    const imageUrl = featuredImage || 'https://via.placeholder.com/400x160?text=Lesson+Image';
+    
+    return (
+        // Your original card structure, wrapped in a Link
+        <Link 
+            to={`/lessondetails/${_id}`}
+            className="flex flex-col gap-3 rounded-xl bg-gray-100 dark:bg-white/5 p-4 transition-transform hover:-translate-y-1"
+        >
+            {/* Image section matching your original div structure */}
+            <div 
+                className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg overflow-hidden"
+            >
+                {/* Dynamically set the image */}
+                <img src={imageUrl} alt={title} className="w-full h-full object-cover"/>
+            </div>
+            
+            {/* Details section */}
+            <div>
+                {/* Dynamically set the title */}
+                <p className="text-gray-900 dark:text-white text-base font-medium leading-normal">{title}</p>
+                {/* Dynamically set the author name */}
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">By {authorName}</p>
+            </div>
+        </Link>
+    );
+};
+
 
 const FeaturedLessons = () => {
+    // These unused variables are removed as they rely on 'lessonData' which is not here
+    // const { id } = useParams();
+    // const category = lessonData?.lesson?.lessonInfo?.category;
+    // const tone = lessonData?.lesson?.lessonInfo?.tone;
+
+    const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
+    
+    // We fetch a limited number of public lessons for the "Featured" section
+    const FEATURED_LIMIT = 4; // Changed from 8 to match your 4-column layout visually
+
+    const { data: publicLessonsData, isLoading: publicLoading, isError } = useQuery({
+        // Updated queryKey to reflect fetching general public lessons
+        queryKey: ['publicLessons', FEATURED_LIMIT], 
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/public-lessons`, {
+                params: { 
+                    page: 1, 
+                    limit: FEATURED_LIMIT 
+                }
+            });
+            // Extract the lessons array from the server's paginated response
+            return res.data.lessons; 
+        },
+        staleTime: 1000 * 60 * 5, 
+    });
+
+    if (axiosLoading || publicLoading) {
+        return <Loading />;
+    }
+
+    if (isError) {
+         return <div className="text-center p-8 dark:text-white">Failed to load featured lessons.</div>;
+    }
+
+    if (!publicLessonsData || publicLessonsData.length === 0) {
+         return <div className="text-center p-8 dark:text-white">No featured lessons available at this time.</div>;
+    }
+
+
     return (
         <div>
-            <section className="py-10 sm:py-16 lg:py-20">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h2 className="text-gray-900 dark:text-white text-2xl sm:text-3xl font-bold leading-tight tracking-[-0.015em] px-4 pb-6">Featured Life Lessons</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="flex flex-col gap-3 rounded-xl bg-gray-100 dark:bg-white/5 p-4 transition-transform hover:-translate-y-1">
-                                <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDIKXMj0gbM9HZ8k7tZpRPTvqheP48rB4W8qIIlFe0Ktdm8IfFXWafFizmjsuzTaM8bmJGHhnlFELJXWu0nEe0jGJrjLxWAegbfvDCp2-t8D4TvG85D9gmVUQvtlzGyVFAEbry96gviWjGBc2QDySD3v35YkU4iEbU6d193epHr5G9URXJyeqYfgxG0HmEHUTlAjqBeHNfvq2TLSKhGklP1fbiNOO8ldkPj3Gida4JRLGEJcUMc62zhOCvGe2kEdoTMAspxF5zdEvI')]" data-alt="A person meditating on a mountain peak at sunrise" ></div>
-                                <div>
-                                    <p className="text-gray-900 dark:text-white text-base font-medium leading-normal">On Overcoming Fear</p>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">By Alex Johnson</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-3 rounded-xl bg-gray-100 dark:bg-white/5 p-4 transition-transform hover:-translate-y-1">
-                                <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuCjcR-geGPQjWEWHn2taFnpE5LjfHTm7-deyLcbGUQ3rJyhMnK5tdJan74T_n3DLGbpwp5CEIGM8PYasiSG6GaDJ_dNSus3hDBGiIpmq9AO3srwOvVry4kx3OY8Mk1hz0MysFNQCGyVaoAHwBVKdhzuhWMFphieiTgv7J3gHC0GlnEywLTTbkPhObyr210TgOk7_w5Ee69LYMcssRkb1MyKw6EgodIHhnnyq-oiqxouL2sLUieW7bDNv6dxV6A-53PL41tArEcntmI')]" data-alt="Two people having a deep conversation over coffee"></div>
-                                <div>
-                                    <p className="text-gray-900 dark:text-white text-base font-medium leading-normal">The Power of Listening</p>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">By Maria Garcia</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-3 rounded-xl bg-gray-100 dark:bg-white/5 p-4 transition-transform hover:-translate-y-1">
-                                <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuCiu4uZH-zjRtdFKSnNbCekGqS4F3ZQJgk9VJO53R64llL3feMnMWG6BovgH8cxCswqMfjQAdXQ_5-3SakhdPX-oScqGitnfY0nZHhgX3INith9U9Yh2PQwSxeTb8JIl81w5CHVi7xnPqzPrSYWo3Mm2wkb_7Lsf511Xzm8cpaHZ-FKuPIxgHbqlfPVXgA1vXSbEAgt8yVe6b6mh4a2HpDuyt-uvlGqTNyQ08YEf6TbDr4VKCvGn0VDlb1kXY97H1y67zvM5wW5xY0')]" data-alt="A minimalist living space with natural light"></div>
-                                <div>
-                                    <p className="text-gray-900 dark:text-white text-base font-medium leading-normal">Finding Joy in Simplicity</p>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">By Chen Wei</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-3 rounded-xl bg-gray-100 dark:bg-white/5 p-4 transition-transform hover:-translate-y-1">
-                                <div className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDEsw1IUFISNl6I-YxOj-rJwhnu6Td9HXru5sL0VpKbR4l9XXKjueVUD1l9kAgqofjQt-0q4YlJgFAZIYu0Mj1MTNdqeYRXXlPJXwMiIgx4MqqwqjjamhQe2BO6-VbtxtNP0SfXUh18FrKFFWX8p-rbjSJvgqbE0tkadEK9qUWbwctFx8sTrmPJATg-wMDMmfKXl651nAQ5Zf7pDCtVyAfH29K3ky-iZSBZWpkQofLTVBuhJSXpPmoLB6C4MDVS7ErKnyBCZpYrgcc')]" data-alt="Hands releasing a white dove into the sky"></div>
-                                <div>
-                                    <p className="text-gray-900 dark:text-white text-base font-medium leading-normal">The Art of Forgiveness</p>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">By Samira Khan</p>
-                                </div>
-                            </div>
-                        </div>
+            <section className="py-8 ">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* Your original h2 text */}
+                    <h2 className="text-gray-900 dark:text-white text-2xl sm:text-3xl font-bold leading-tight tracking-[-0.015em] px-4 pb-6">Featured Life Lessons</h2>
+                    
+                    {/* Your original grid layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Dynamically map and render the LessonCard component */}
+                        {publicLessonsData.map(lesson => (
+                            <LessonCard key={lesson._id} lesson={lesson} />
+                        ))}
                     </div>
-                </section>
+                </div>
+            </section>
         </div>
     );
 };
