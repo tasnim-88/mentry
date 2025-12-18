@@ -28,12 +28,6 @@ const DisplayUser = () => {
                 <ul
                     tabIndex="-1"
                     className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-52 p-2 shadow">
-                    <li>
-                        <a className="justify-between">
-                            {user.displayName}
-                            <span className="badge">Profile</span>
-                        </a>
-                    </li>
                     <li><Link to={'/dashboard'}>Dashboard</Link></li>
                     <li><Link onClick={handleSignout}>Logout</Link></li>
                 </ul>

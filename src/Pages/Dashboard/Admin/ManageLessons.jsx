@@ -3,6 +3,7 @@ import { IoSearch, IoTrash, IoStar, IoCheckmarkCircle, IoFilter } from 'react-ic
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Swal from 'sweetalert2';
 import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import Loading from '../../../Components/Loading/Loading';
 
 const ManageLessons = () => {
     const { axiosSecure } = useAxiosSecure();
@@ -102,7 +103,7 @@ const ManageLessons = () => {
         });
     };
 
-    if (isLoading) return <div className="p-8 text-center text-green-600 font-bold">Loading Management Dashboard...</div>;
+    if (isLoading) return <Loading />;
 
     return (
         <main className="flex-1 p-8 overflow-y-auto bg-gray-50 dark:bg-[#0a0f0c]">

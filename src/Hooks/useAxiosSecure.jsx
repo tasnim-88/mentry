@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { auth } from '../Firebase/firebase.init';
 
 const axiosSecure = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: 'https://digital-life-lessons-server-henna.vercel.app',
 });
 
 // Attach token from localStorage dynamically for every request

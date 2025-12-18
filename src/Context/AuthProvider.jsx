@@ -49,7 +49,7 @@ const AuthProvider = ({ children }) => {
             // Force refresh the Firebase Token to get latest claims if any
             const token = await auth.currentUser.getIdToken(true);
 
-            const res = await axios.get('http://localhost:3000/users/me', {
+            const res = await axios.get('https://digital-life-lessons-server-henna.vercel.app/users/me', {
                 headers: { authorization: `Bearer ${token}` },
             });
 
@@ -92,7 +92,7 @@ const AuthProvider = ({ children }) => {
             try {
                 const token = await currentUser.getIdToken();
 
-                const res = await axios.get('http://localhost:3000/users/me', {
+                const res = await axios.get('https://digital-life-lessons-server-henna.vercel.app/users/me', {
                     headers: {
                         authorization: `Bearer ${token}`,
                     },

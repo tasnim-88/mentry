@@ -54,7 +54,7 @@ const FeaturedLessons = () => {
         // Updated queryKey to reflect fetching general public lessons
         queryKey: ['publicLessons', FEATURED_LIMIT],
         queryFn: async () => {
-            const res = await axios.get(`http://localhost:3000/public-lessons`, {
+            const res = await axios.get(`https://digital-life-lessons-server-henna.vercel.app/public-lessons`, {
                 params: {
                     page: 1,
                     limit: FEATURED_LIMIT

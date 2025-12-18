@@ -25,11 +25,11 @@ const SocialLogin = () => {
     //         };
 
     //         // 🔍 CHECK if user already exists
-    //         const res = await axios.get(`http://localhost:3000/users/${user.email}`);
+    //         const res = await axios.get(`https://digital-life-lessons-server-henna.vercel.app/users/${user.email}`);
 
     //         if (!res.data) {
     //             // ✅ CREATE user only if not exists
-    //             await axios.post('http://localhost:3000/users', userInfo);
+    //             await axios.post('https://digital-life-lessons-server-henna.vercel.app/users', userInfo);
     //         }
 
     //         navigate(location?.state || '/');
@@ -52,7 +52,7 @@ const SocialLogin = () => {
             };
 
             // Just POST the data. The backend will handle the rest.
-            await axios.post('http://localhost:3000/users', userInfo);
+            await axios.post('https://digital-life-lessons-server-henna.vercel.app/users', userInfo);
             navigate(location?.state || '/');
         } catch (error) {
             console.error("Google Login Error:", error);

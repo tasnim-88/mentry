@@ -50,7 +50,7 @@ const Register = () => {
                 createdAt: new Date(),
             };
 
-            await axios.post('http://localhost:3000/users', userInfo);
+            await axios.post('https://digital-life-lessons-server-henna.vercel.app/users', userInfo);
 
             // 4. Update Firebase profile
             await updateUser({

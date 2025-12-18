@@ -6,6 +6,8 @@ import useAuth from '../../../Hooks/useAuth';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Loading from '../../../Components/Loading/Loading';
+import success from '../../../assets/animation/Confetti.json'
+import Lottie from 'lottie-react';
 
 const AddLesson = () => {
     const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
@@ -13,6 +15,7 @@ const AddLesson = () => {
 
     const [isPremium, setIsPremium] = useState(false);
     const [loadingRole, setLoadingRole] = useState(true);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     const {
         register,
@@ -93,8 +96,11 @@ const AddLesson = () => {
 
             await axiosSecure.post('/lessons', lessonData);
 
+            setShowSuccess(true)
             toast.success('Lesson published successfully 🎉');
             reset();
+
+            setTimeout(() => setShowSuccess(false), 3000)
         } catch (error) {
             console.error('Failed to publish lesson:', error);
             toast.error('Failed to publish lesson');
@@ -107,6 +113,13 @@ const AddLesson = () => {
 
     return (
         <main className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 py-16 flex justify-center">
+            {showSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/10 backdrop-blur-[2px] pointer-events-none">
+                    <div className="w-full max-w-[500px]">
+                        <Lottie animationData={success} loop={false} />
+                    </div>
+                </div>
+            )}
             <div className="w-full max-w-[960px]">
 
                 {/* Header */}

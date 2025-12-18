@@ -4,6 +4,7 @@ import { HiOutlineDocumentReport, HiOutlineXCircle } from 'react-icons/hi';
 import { RiDeleteBin6Fill, RiCheckLine } from 'react-icons/ri';
 import useAxiosSecure from '../../../Hooks/useAxiosSecure';
 import Swal from 'sweetalert2';
+import Loading from '../../../Components/Loading/Loading';
 
 const ReportedLessons = () => {
     const { axiosSecure } = useAxiosSecure();
@@ -34,7 +35,7 @@ const ReportedLessons = () => {
         }
     });
 
-    if (isLoading) return <div className="p-10 text-center">Loading reports...</div>;
+    if (isLoading) return <Loading />;
 
     return (
         <main className="flex-1 p-8 bg-gray-50 dark:bg-[#0a0f0c] min-h-screen">

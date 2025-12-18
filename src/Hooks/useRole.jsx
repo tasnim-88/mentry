@@ -18,7 +18,7 @@ const useRole = () => {
         }
         const fetchRole = async () => {
             try {
-                const res = await axios.get(`http://localhost:3000/users/${user?.email}/role`)
+                const res = await axios.get(`https://digital-life-lessons-server-henna.vercel.app/users/${user?.email}/role`)
                 setRole(res.data.role)
 
             } catch (err) {

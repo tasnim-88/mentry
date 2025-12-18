@@ -16,7 +16,7 @@ const PublicLessons = () => {
     const { data: lessons = [], isLoading } = useQuery({
         queryKey: ['lessons'],
         queryFn: async () => {
-            const res = await axios.get('http://localhost:3000/lessons');
+            const res = await axios.get('https://digital-life-lessons-server-henna.vercel.app/lessons');
             return res.data;
         }
     });
