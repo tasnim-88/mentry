@@ -4,7 +4,6 @@ import useAuth from '../Hooks/useAuth';
 import Loading from '../Components/Loading/Loading';
 
 const PrivateRoute = ({ children }) => {
-
     const { user, loading } = useAuth()
     const location = useLocation()
 
@@ -13,7 +12,8 @@ const PrivateRoute = ({ children }) => {
     }
 
     if (!user) {
-        return <Navigate state={location.pathname} to={'/login'}></Navigate>
+        return <Navigate to="/login" state={{ from: location }} replace />
+
     }
 
     return children

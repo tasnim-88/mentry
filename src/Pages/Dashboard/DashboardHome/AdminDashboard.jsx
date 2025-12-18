@@ -1,114 +1,242 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+import {
+    Users,
+    BookOpen,
+    AlertTriangle,
+    TrendingUp,
+    UserCheck
+} from 'lucide-react';
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    Legend
+} from 'recharts';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import Loading from '../../../Components/Loading/Loading';
 
 const AdminDashboard = () => {
+    const { axiosSecure } = useAxiosSecure();
+    const [timePeriod, setTimePeriod] = useState('7d'); // '7d', '30d', 'all'
+
+    // 1. Fetch Admin Data from Backend
+    // ... inside AdminDashboard component ...
+
+    const { data: adminData, isLoading, isError, error } = useQuery({
+        queryKey: ['admin-stats', timePeriod],
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/admin-stats?period=${timePeriod}`);
+            return res.data;
+        }
+    });
+
+    // 1. First guard: Loading state
+    if (isLoading) return <Loading />;
+
+    // 2. Second guard: Error state
+    if (isError) return <div className="p-10 text-error text-center">Error: {error.message}</div>;
+
+    // 3. Third guard: Defensive Destructuring with Defaults ✅
+    const {
+        stats = {
+            totalUsers: 0,
+            totalLessons: 0,
+            reportedLessons: 0,
+            todayNewLessons: 0
+        },
+        chartData = [],
+        activeContributors = []
+    } = adminData || {};
+
+    // ... rest of your return statement ...
+
     return (
-        <div>
-            <main className="flex-1 p-6 lg:p-10">
+        <div className="min-h-screen bg-base-200/30">
+            <main className="flex-1 p-6 lg:p-10 max-w-[1600px] mx-auto">
 
-                {/* Heading */}
-                <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
-                    <p className="text-4xl font-black leading-tight tracking-[-0.033em] text-base-content">
-                        Dashboard
-                    </p>
-
-                    <div className="flex gap-2">
-                        <button className="flex h-8 items-center justify-center gap-x-2 rounded-lg bg-base-300 px-3">
-                            <p className="text-sm font-medium text-base-content">Last 7 Days</p>
-                        </button>
-                        <button className="flex h-8 items-center justify-center gap-x-2 rounded-lg bg-primary/20 px-3">
-                            <p className="text-primary text-sm font-medium">Last 30 Days</p>
-                        </button>
-                        <button className="flex h-8 items-center justify-center gap-x-2 rounded-lg bg-base-300 px-3">
-                            <p className="text-sm font-medium text-base-content">All Time</p>
-                        </button>
+                {/* --- HEADING & FILTERS --- */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+                    <div>
+                        <h1 className="text-4xl font-black tracking-tight text-base-content">
+                            Admin Overview
+                        </h1>
+                        <p className="text-base-content/60 mt-1">Platform-wide analytics and system activity.</p>
                     </div>
-                </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    {[
-                        ["Total Users", "15,234"],
-                        ["Total Public Lessons", "45,890"],
-                        ["Reported Lessons", "12", "text-error"],
-                        ["Today's New Lessons", "+78", "text-primary"]
-                    ].map(([label, value, extraClass], i) => (
-                        <div
-                            key={i}
-                            className="flex flex-col gap-2 rounded-xl p-6 border border-base-300 bg-base-100"
+                    <div className="join bg-base-100 border border-base-300 shadow-sm">
+                        <button
+                            onClick={() => setTimePeriod('7d')}
+                            className={`join-item btn btn-sm ${timePeriod === '7d' ? 'btn-primary' : 'btn-ghost'}`}
                         >
-                            <p className="text-base font-medium text-base-content">{label}</p>
-                            <p className={`text-4xl font-bold leading-tight ${extraClass || "text-base-content"}`}>
-                                {value}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-                    <div className="rounded-xl border border-base-300 bg-base-100 p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-base-content">User Growth</h3>
-                        <div className="w-full h-64 flex items-center justify-center">
-                            <img
-                                alt="Line chart"
-                                className="w-full h-full object-contain"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsZrZmXIh3CJwkEsu2zYySCVwEdWSq3MgveQg7APoMVICB0otD4EmyVzbDRGA3GVYFLGhsuWOqOjIxgP98ZMb4JHDztizs1JmDExRmi2wzhtiG0uCZNe19du2oXjAltHdREU4WVNxfOYMyfx5iPYGs-zdkjqBNoJw8HKc9ZDs00FbUAPB2b4Qsul1EJXrAbYZVNRlZz5-DkwtPXLg5tFa3_BvnJ3pMc_XVz-C5nMiq1OeUbs7wMfWAlIynjuhuXF4HdWqNvoOff0Y"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="rounded-xl border border-base-300 bg-base-100 p-6">
-                        <h3 className="text-lg font-semibold mb-4 text-base-content">Lesson Creation Growth</h3>
-                        <div className="w-full h-64 flex items-center justify-center">
-                            <img
-                                alt="Area chart"
-                                className="w-full h-full object-contain"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4fKUd5BqqRrU0O5X0jKoHSZW72bV3_Bg-amy-4okZ_XgF50lcQS0IJ6QV7ct_J4JySn285lObTD4qru9aVYR7KzJj71-oxnOGFscQLxlon4Xf2GJlPxsdI-mepEkLDccZqc4F7odrW_YK92fGhfdMP7y-DguFlXz1XLE5esCdx_opzSnAPdq6VLArDG868mHyL4a8dMfYP3ROjD8r3p09zt78e1wm0h3qNHeENIWJlMrqKmFv-Le3K3LQpyg6ogK0sQPEiSIEK3Y"
-                            />
-                        </div>
+                            Last 7 Days
+                        </button>
+                        <button
+                            onClick={() => setTimePeriod('30d')}
+                            className={`join-item btn btn-sm ${timePeriod === '30d' ? 'btn-primary' : 'btn-ghost'}`}
+                        >
+                            Last 30 Days
+                        </button>
+                        <button
+                            onClick={() => setTimePeriod('all')}
+                            className={`join-item btn btn-sm ${timePeriod === 'all' ? 'btn-primary' : 'btn-ghost'}`}
+                        >
+                            All Time
+                        </button>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="rounded-xl border border-base-300 bg-base-100 p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-base-content">Most Active Contributors</h3>
+                {/* --- STATS CARDS --- */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                    <StatCard
+                        icon={<Users className="text-blue-500" />}
+                        label="Total Users"
+                        value={stats.totalUsers.toLocaleString()}
+                    />
+                    <StatCard
+                        icon={<BookOpen className="text-green-500" />}
+                        label="Public Lessons"
+                        value={stats.totalLessons.toLocaleString()}
+                    />
+                    <StatCard
+                        icon={<AlertTriangle className="text-error" />}
+                        label="Reported Lessons"
+                        value={stats.reportedLessons}
+                        alert={stats.reportedLessons > 0}
+                    />
+                    <StatCard
+                        icon={<TrendingUp className="text-primary" />}
+                        label="New Lessons Today"
+                        value={`+${stats.todayNewLessons}`}
+                    />
+                </div>
 
+                {/* --- CHARTS SECTION --- */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                    {/* User Growth Chart */}
+                    <div className="card bg-base-100 border border-base-300 shadow-sm p-6">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                            <UserCheck size={20} className="text-primary" /> User Growth
+                        </h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                    <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                                    <Line type="monotone" dataKey="newUsers" stroke="#3b82f6" strokeWidth={4} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Lesson Growth Chart */}
+                    <div className="card bg-base-100 border border-base-300 shadow-sm p-6">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                            <TrendingUp size={20} className="text-success" /> Lesson Creation Growth
+                        </h3>
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                    <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip />
+                                    <Area type="monotone" dataKey="newLessons" stroke="#10b981" fillOpacity={1} fill="url(#colorLessons)" strokeWidth={3} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- ACTIVE CONTRIBUTORS TABLE --- */}
+                <div className="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-base-300 flex justify-between items-center">
+                        <h3 className="text-lg font-bold">Most Active Contributors</h3>
+                        <button className="btn btn-ghost btn-xs text-primary">View All</button>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead>
-                                <tr className="border-b border-base-300">
-                                    {["Username", "Lesson Count", "Join Date", "Last Activity"].map((head, i) => (
-                                        <th key={i} className={`py-3 px-4 text-sm font-semibold text-base-content/70 uppercase ${i === 1 ? "text-right" : ""}`}>
-                                            {head}
-                                        </th>
-                                    ))}
+                        <table className="table w-full">
+                            <thead className="bg-base-200/50">
+                                <tr>
+                                    <th className="text-base-content/70">Contributor</th>
+                                    <th className="text-base-content/70 text-center">Lessons</th>
+                                    <th className="text-base-content/70">Joined Date</th>
+                                    <th className="text-base-content/70">Role</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-                                {[
-                                    ["AlexMorgan", 245, "2023-01-15", "2 hours ago"],
-                                    ["CaseyJordan", 198, "2022-11-20", "1 day ago"],
-                                    ["RileyPace", 153, "2023-05-10", "5 hours ago"],
-                                    ["JordanTaylor", 121, "2023-08-02", "3 days ago"],
-                                    ["SkylerFinn", 99, "2024-01-05", "1 week ago"],
-                                ].map(([name, count, join, last], i) => (
-                                    <tr key={i} className="border-b border-base-200 hover:bg-base-200/50">
-                                        <td className="py-4 px-4 text-base-content text-sm font-medium">{name}</td>
-                                        <td className="py-4 px-4 text-base-content text-sm font-medium text-right">{count}</td>
-                                        <td className="py-4 px-4 text-base-content/70 text-sm">{join}</td>
-                                        <td className="py-4 px-4 text-base-content/70 text-sm">{last}</td>
+                                {activeContributors.map((user) => (
+                                    <tr key={user._id} className="hover:bg-base-200/30 transition-colors">
+                                        <td>
+                                            <div className="flex items-center gap-3">
+                                                <div className="avatar">
+                                                    <div className="mask mask-squircle w-10 h-10">
+                                                        <img src={user.photoURL} alt={user.displayName} />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold">{user.displayName}</div>
+                                                    <div className="text-xs opacity-50">{user.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="text-center">
+                                            <span className="badge badge-ghost font-mono font-bold">
+                                                {user.totalLessons || 0}
+                                            </span>
+                                        </td>
+                                        <td className="text-sm">
+                                            {new Date(user.createdAt).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })}
+                                        </td>
+                                        <td>
+                                            <span className={`badge badge-sm ${user.role === 'admin' ? 'badge-secondary' : 'badge-outline'}`}>
+                                                {user.role}
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 </div>
-
             </main>
         </div>
     );
 };
+
+// --- HELPER COMPONENT FOR STAT CARDS ---
+const StatCard = ({ icon, label, value, alert = false }) => (
+    <div className={`card bg-base-100 p-6 border ${alert ? 'border-error/50 bg-error/5' : 'border-base-300'} shadow-sm`}>
+        <div className="flex items-center gap-4">
+            <div className="p-3 bg-base-200 rounded-lg">{icon}</div>
+            <div>
+                <p className="text-sm font-medium text-base-content/60 uppercase tracking-wider">{label}</p>
+                {/* Use optional chaining and a fallback for the value */}
+                <p className="text-3xl font-black text-base-content">
+                    {value?.toLocaleString() || "0"}
+                </p>
+            </div>
+        </div>
+    </div>
+);
 
 export default AdminDashboard;

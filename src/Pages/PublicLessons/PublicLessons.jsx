@@ -3,21 +3,20 @@ import { CiLock } from 'react-icons/ci';
 import { FaChevronCircleLeft, FaChevronCircleRight } from 'react-icons/fa';
 import { IoSearch } from 'react-icons/io5';
 import { Link } from 'react-router';
-import useAxiosSecure from '../../Hooks/useAxiosSecure';
 import { useQuery } from '@tanstack/react-query';
 import useAuth from '../../Hooks/useAuth';
 import Loading from '../../Components/Loading/Loading';
+import axios from 'axios';
 
 const PublicLessons = () => {
 
     const { user } = useAuth();
-    const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
+    // const { axiosSecure, loading: axiosLoading } = useAxiosSecure();
 
     const { data: lessons = [], isLoading } = useQuery({
         queryKey: ['lessons'],
-        enabled: !axiosLoading,
         queryFn: async () => {
-            const res = await axiosSecure.get('/lessons');
+            const res = await axios.get('http://localhost:3000/lessons');
             return res.data;
         }
     });
@@ -317,3 +316,19 @@ const PublicLessons = () => {
 };
 
 export default PublicLessons;
+
+
+// import React from 'react'
+// import useAuth from '../../Hooks/useAuth'
+
+// const PublicLessons = () => {
+//     const { user } = useAuth()
+//     return (
+//         <div>
+//             <h2>{user?.email}</h2>
+//             fjdf
+//         </div>
+//     )
+// }
+
+// export default PublicLessons

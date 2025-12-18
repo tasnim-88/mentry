@@ -1,97 +1,144 @@
-import React from 'react';
-import { HiOutlineDocumentReport } from 'react-icons/hi';
-import { MdCommentsDisabled } from 'react-icons/md';
-import { RiDeleteBin6Fill } from 'react-icons/ri';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { HiOutlineDocumentReport, HiOutlineXCircle } from 'react-icons/hi';
+import { RiDeleteBin6Fill, RiCheckLine } from 'react-icons/ri';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import Swal from 'sweetalert2';
 
 const ReportedLessons = () => {
+    const { axiosSecure } = useAxiosSecure();
+    const queryClient = useQueryClient();
+    const [selectedReport, setSelectedReport] = useState(null);
+
+    const { data: reportedLessons = [], isLoading } = useQuery({
+        queryKey: ['reported-lessons'],
+        queryFn: async () => {
+            const res = await axiosSecure.get('/admin/reported-lessons');
+            return res.data;
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id) => axiosSecure.delete(`/lessons/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['reported-lessons']);
+            Swal.fire("Deleted", "Lesson removed from platform.", "success");
+        }
+    });
+
+    const ignoreMutation = useMutation({
+        mutationFn: (id) => axiosSecure.patch(`/admin/ignore-reports/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['reported-lessons']);
+            Swal.fire("Ignored", "Reports have been marked as resolved.", "success");
+        }
+    });
+
+    if (isLoading) return <div className="p-10 text-center">Loading reports...</div>;
+
     return (
-        <div>
-            <main className="flex-1 p-8">
-                <div className="w-full max-w-7xl mx-auto">
-                    {/* <!-- PageHeading --> */}
-                    <div className="flex flex-wrap justify-between items-start gap-4 mb-8">
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Reported &amp; Flagged Lessons</h1>
-                            <p className="text-gray-500 dark:text-[#9db9a8] text-base font-normal leading-normal">Review and manage lessons flagged by the community.</p>
-                        </div>
+        <main className="flex-1 p-8 bg-gray-50 dark:bg-[#0a0f0c] min-h-screen">
+            <div className="max-w-7xl mx-auto">
+                <div className="mb-8">
+                    <h1 className="text-gray-900 dark:text-white text-4xl font-black">Reported & Flagged Lessons</h1>
+                    <p className="text-gray-500">Maintain community safety by reviewing flags.</p>
+                </div>
+
+                {reportedLessons.length === 0 ? (
+                    <div className="text-center py-20 bg-white dark:bg-[#111814] rounded-xl border dark:border-gray-800">
+                        <p className="text-xl font-bold dark:text-white">Clean Slate!</p>
+                        <p className="text-gray-500">No lessons are currently flagged.</p>
                     </div>
-                    {/* <!-- Table --> */}
-                    <div className="overflow-x-auto @container">
-                        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-black/20">
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                                <thead className="bg-gray-50 dark:bg-white/5">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider table-column-1" scope="col">Lesson Title</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider table-column-2" scope="col">Author</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider table-column-3" scope="col">Report Count</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider table-column-4" scope="col">First Reported</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider table-column-5" scope="col">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                                    <tr>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white table-column-1">The Art of Forgiveness</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-2">JohnDoe</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-3">15</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-4">2023-10-26</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 table-column-5">
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"><HiOutlineDocumentReport size={20}/></button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"><MdCommentsDisabled size={20}/></button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"><RiDeleteBin6Fill size={20}/></button>
+                ) : (
+                    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#111814]">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                            <thead className="bg-gray-50 dark:bg-white/5">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Lesson Title</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Author</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold uppercase text-gray-500">Flags</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold uppercase text-gray-500">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y dark:divide-gray-800">
+                                {reportedLessons.map((item) => (
+                                    <tr key={item.lessonId} className={item.status === 'Ignored' ? 'opacity-40' : ''}>
+                                        <td className="px-6 py-4 text-sm font-bold dark:text-white">{item.title}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">{item.author}</td>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-black">
+                                                {item.reportCount}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 flex gap-2">
+                                            <button
+                                                onClick={() => setSelectedReport(item)}
+                                                className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:text-blue-500 transition-colors"
+                                                title="View Details"
+                                            >
+                                                <HiOutlineDocumentReport size={20} />
+                                            </button>
+
+                                            {item.status !== 'Ignored' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => ignoreMutation.mutate(item.lessonId)}
+                                                        className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:text-green-500 transition-colors"
+                                                        title="Ignore Reports"
+                                                    >
+                                                        <RiCheckLine size={20} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => deleteMutation.mutate(item.lessonId)}
+                                                        className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
+                                                        title="Delete Lesson"
+                                                    >
+                                                        <RiDeleteBin6Fill size={20} />
+                                                    </button>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
-                                    <tr>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white table-column-1">Finding Joy in Small Things</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-2">JaneSmith</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-3">8</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-4">2023-10-25</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 table-column-5">
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">View Reports</button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Ignore</button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">Delete</button>
-                                        </td>
-                                    </tr>
-                                    <tr className="opacity-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white table-column-1">Overcoming Procrastination</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-2">AlexRay</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-3">5</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-4">2023-10-24</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 table-column-5">
-                                            <span className="px-3 py-1.5 text-xs font-bold text-yellow-800 dark:text-yellow-200 bg-yellow-400/20 dark:bg-yellow-500/20 rounded-md">Ignored</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white table-column-1">Navigating Career Changes</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-2">EmilyWhite</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-3">2</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 table-column-4">2023-10-22</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 table-column-5">
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">View Reports</button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-gray-800 dark:text-gray-200 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Ignore</button>
-                                            <button className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">Delete</button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        {/* <style>
-                            @container (max-width: 900px) { .table - column - 4 {display: none; } }
-                            @container (max-width: 768px) { .table - column - 2 {display: none; } }
-                            @container (max-width: 640px) { .table - column - 3 {display: none; } }
-                        </style> */}
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
-                    {/* <!-- Empty State --> */}
-                    <div className="hidden flex flex-col items-center justify-center text-center py-20 px-4">
-                        <div className="bg-center bg-no-repeat aspect-square bg-contain w-full max-w-xs mb-6 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuDlqlQ9HOEEnzW6-wS7E37qkdJFGVRFJQukDzw5q8zdF25W___L06GeXjNILmDICpTE2TV2qJIZPBA_vCTnq0zJGkzez6mrZ5xOZi2aMPn48QlnCRCMiaLDWtaKaHE4ZYGe8Vpj0Q108UvZy9Sta4AYGXuV1CkwE8214Kom8YK_PLPOK14YQd7E9eesgabWYFl4mS3ntwR_2sB4ceJCThc6pjaSCRyfu6LSN_qD0LCLX59lKI0_kTTfB5zbulgKSp8cFqor8VezIxw')]" data-alt="Illustration of a clean document with a green checkmark."></div>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">No Reported Lessons</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6 max-w-sm">Great job! There are currently no lessons that need your review. All community submissions are in good standing.</p>
-                        <button className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-5 bg-primary text-background-dark text-sm font-bold leading-normal tracking-[0.015em]">
-                            <span className="truncate">Go to Dashboard</span>
-                        </button>
+                )}
+            </div>
+
+            {/* DETAILS MODAL */}
+            {selectedReport && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-[#111814] w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border dark:border-gray-800">
+                        <div className="p-6 border-b dark:border-gray-800 flex justify-between items-center">
+                            <h2 className="text-xl font-bold dark:text-white">Report Details: {selectedReport.title}</h2>
+                            <button onClick={() => setSelectedReport(null)} className="text-gray-400 hover:text-white">
+                                <HiOutlineXCircle size={24} />
+                            </button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                            {selectedReport.reports.map((report, idx) => (
+                                <div key={idx} className="p-4 bg-gray-50 dark:bg-[#1a2c22] rounded-xl border dark:border-gray-700">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-xs font-bold text-green-500 uppercase">Reporter: {report.reportedUserEmail}</span>
+                                        <span className="text-[10px] text-gray-500">{new Date(report.timestamp).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 italic">"{report.reason}"</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-6 bg-gray-50 dark:bg-white/5 text-right">
+                            <button
+                                onClick={() => setSelectedReport(null)}
+                                className="px-6 py-2 bg-gray-900 text-white rounded-lg font-bold"
+                            >
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            )}
+        </main>
     );
 };
 

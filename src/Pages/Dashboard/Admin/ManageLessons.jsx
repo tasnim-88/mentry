@@ -1,255 +1,223 @@
-import React from 'react';
-import { IoSearch } from 'react-icons/io5';
+import React, { useState } from 'react';
+import { IoSearch, IoTrash, IoStar, IoCheckmarkCircle, IoFilter } from 'react-icons/io5';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Swal from 'sweetalert2';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
 
 const ManageLessons = () => {
+    const { axiosSecure } = useAxiosSecure();
+    const queryClient = useQueryClient();
+
+    // Filter States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [filterVisibility, setFilterVisibility] = useState('');
+    const [showOnlyUnreviewed, setShowOnlyUnreviewed] = useState(false);
+
+    // Fetch All Lessons
+    const { data: lessons = [], isLoading } = useQuery({
+        queryKey: ['admin-lessons'],
+        queryFn: async () => {
+            const res = await axiosSecure.get('/lessons');
+            return res.data;
+        }
+    });
+
+    // Fetch Stats
+    const { data: stats = {} } = useQuery({
+        queryKey: ['lesson-stats'],
+        queryFn: async () => {
+            const res = await axiosSecure.get('/admin/lesson-stats');
+            return res.data;
+        }
+    });
+
+    // Mutation for Moderation (Independent Statuses)
+    const moderateMutation = useMutation({
+        mutationFn: ({ id, updates }) => axiosSecure.patch(`/lessons/moderate/${id}`, updates),
+        onSuccess: () => {
+            queryClient.invalidateQueries(['admin-lessons', 'lesson-stats']);
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500,
+            });
+            Toast.fire({ icon: 'success', title: 'Status Updated' });
+        }
+    });
+
+    // Mutation for Deletion
+    const deleteMutation = useMutation({
+        mutationFn: (id) => axiosSecure.delete(`/lessons/${id}`),
+        onSuccess: () => {
+            // Refetch data so the UI updates immediately
+            queryClient.invalidateQueries(['admin-lessons']);
+            queryClient.invalidateQueries(['lesson-stats']);
+
+            Swal.fire({
+                title: "Deleted!",
+                text: "The lesson has been removed.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false
+            });
+        },
+        onError: (error) => {
+            Swal.fire("Error", "Could not delete the lesson.", "error");
+            console.error("Delete Error:", error);
+        }
+    });
+
+    // COMPLETE FILTERING LOGIC
+    const filteredLessons = lessons.filter(lesson => {
+        const matchesSearch =
+            lesson.lessonInfo?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            lesson.author?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesCategory = filterCategory === '' || lesson.lessonInfo?.category === filterCategory;
+
+        const matchesVisibility = filterVisibility === '' || lesson.metadata?.visibility === filterVisibility;
+
+        // Show only unreviewed if the filter is active
+        const matchesFlag = !showOnlyUnreviewed || lesson.isReviewed === false;
+
+        return matchesSearch && matchesCategory && matchesVisibility && matchesFlag;
+    });
+
+    const handleDelete = (id) => {
+        Swal.fire({
+            title: "Are you sure?",
+            text: "This action is permanent and cannot be undone!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, delete it!"
+        }).then((result) => {
+            // Trigger the mutation here
+            if (result.isConfirmed) {
+                deleteMutation.mutate(id);
+            }
+        });
+    };
+
+    if (isLoading) return <div className="p-8 text-center text-green-600 font-bold">Loading Management Dashboard...</div>;
+
     return (
-        <div>
-            <main className="flex-1 p-8 overflow-y-auto">
-                <div className="max-w-7xl mx-auto">
-                    {/* <!-- PageHeading --> */}
-                    <div className="mb-8">
-                        <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Manage Lessons</p>
+        <main className="flex-1 p-8 overflow-y-auto bg-gray-50 dark:bg-[#0a0f0c]">
+            <div className="max-w-7xl mx-auto">
+                <p className="text-gray-900 dark:text-white text-4xl font-black mb-8">Manage Lessons</p>
+
+                {/* Stats Section (Kept) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="p-6 bg-white dark:bg-[#111814] border dark:border-gray-800 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Public Lessons</p>
+                        <p className="text-3xl font-bold dark:text-white">{stats.publicCount || 0}</p>
                     </div>
-                    {/* <!-- Stats --> */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#111814] border border-gray-200 dark:border-[#3b5445]">
-                            <p className="text-gray-800 dark:text-white text-base font-medium leading-normal">Public Lessons</p>
-                            <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">1,204</p>
-                        </div>
-                        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#111814] border border-gray-200 dark:border-[#3b5445]">
-                            <p className="text-gray-800 dark:text-white text-base font-medium leading-normal">Private Lessons</p>
-                            <p className="text-gray-900 dark:text-white tracking-light text-3xl font-bold leading-tight">3,450</p>
-                        </div>
-                        <div className="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#111814] border border-orange-400/50 dark:border-orange-400/50">
-                            <p className="text-gray-800 dark:text-white text-base font-medium leading-normal">Flagged Content</p>
-                            <p className="text-orange-500 dark:text-orange-400 tracking-light text-3xl font-bold leading-tight">12</p>
-                        </div>
+                    <div className="p-6 bg-white dark:bg-[#111814] border dark:border-gray-800 rounded-xl shadow-sm">
+                        <p className="text-sm text-gray-500">Private Lessons</p>
+                        <p className="text-3xl font-bold dark:text-white">{stats.privateCount || 0}</p>
                     </div>
-                    {/* <!-- Filters & Search --> */}
-                    <div className="bg-white dark:bg-[#111814] border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
-
-                            {/* <!-- SearchBar --> */}
-                            <div className="lg:col-span-2">
-                                <label className="block w-full">
-                                    <div className="relative h-12 w-full focus-within:ring-2 focus-within:ring-primary/60 rounded-lg">
-
-                                        {/* Icon */}
-                                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center
-                                    text-gray-400 dark:text-[#9db9a8]">
-                                            <IoSearch size={18} />
-                                        </span>
-
-                                        {/* Input */}
-                                        <input
-                                            type="search"
-                                            placeholder="Search by name or email..."
-                                            className="h-full w-full rounded-lg border
-                                   border-gray-300 dark:border-[#3b5445]
-                                   bg-background-light dark:bg-[#28392f]
-                                   pl-10 pr-4 text-base font-normal
-                                   text-gray-900 dark:text-white
-                                   placeholder:text-gray-400 dark:placeholder:text-[#9db9a8]
-                                   focus:outline-none focus:border-primary"
-                                        />
-                                    </div>
-                                </label>
-                            </div>
-
-                            {/* <!-- Category Select --> */}
-                            <div className="relative h-12 w-full">
-                                <select
-                                    className="appearance-none w-full h-full rounded-lg px-4 pr-10
-                           bg-white dark:bg-[#1c2720]
-                           border border-gray-300 dark:border-[#3b5445]
-                           text-black dark:text-white
-                           focus:outline-none focus:ring-2 focus:ring-primary/60"
-                                >
-                                    <option>Select a category</option>
-                                    <option>Career</option>
-                                    <option>Relationships</option>
-                                    <option>Health</option>
-                                    <option>Mindfulness</option>
-                                    <option>Finance</option>
-                                </select>
-
-                                {/* Custom arrow */}
-                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center
-                             text-gray-500 dark:text-gray-400">
-                                    ▼
-                                </span>
-                            </div>
-
-                            {/* <!-- Status Select --> */}
-                            <div className="relative h-12 w-full">
-                                <select
-                                    className="appearance-none w-full h-full rounded-lg px-4 pr-10
-                           bg-white dark:bg-[#1c2720]
-                           border border-gray-300 dark:border-[#3b5445]
-                           text-black dark:text-white
-                           focus:outline-none focus:ring-2 focus:ring-primary/60"
-                                >
-                                    <option>Status</option>
-                                    <option>Public lessons</option>
-                                    <option>Private lessons</option>
-                                    <option>Flagged or reported content</option>
-                                </select>
-
-                                {/* Custom arrow */}
-                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center
-                             text-gray-500 dark:text-gray-400">
-                                    ▼
-                                </span>
-                            </div>
-
-                        </div>
+                    <div className="p-6 bg-orange-50 border-orange-200 border rounded-xl shadow-sm">
+                        <p className="text-sm text-orange-800 font-medium">Pending Reports</p>
+                        <p className="text-3xl font-bold text-orange-600">{stats.flaggedCount || 0}</p>
                     </div>
-
-                    {/* <!-- Data Table --> */}
-                    <div className="bg-white dark:bg-[#111814] border border-gray-200 dark:border-gray-800 rounded-xl overflow-x-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-[#1a2c22]">
-                                <tr>
-                                    <th className="p-4" scope="col">
-                                        <div className="flex items-center">
-                                            <input className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" id="checkbox-all" type="checkbox" />
-                                            <label className="sr-only" for="checkbox-all">checkbox</label>
-                                        </div>
-                                    </th>
-                                    <th className="px-6 py-3" scope="col">Lesson Title &amp; Author</th>
-                                    <th className="px-6 py-3" scope="col">Category</th>
-                                    <th className="px-6 py-3" scope="col">Status</th>
-                                    <th className="px-6 py-3" scope="col">Date Created</th>
-                                    <th className="px-6 py-3" scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* <!-- Table Row 1 (Flagged) --> */}
-                                <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-primary/10">
-                                    <td className="w-4 p-4">
-                                        <div className="flex items-center">
-                                            <input className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" id="checkbox-table-1" type="checkbox" />
-                                            <label className="sr-only" for="checkbox-table-1">checkbox</label>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900 dark:text-white">The Power of Saying No</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">by Jane Doe</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-indigo-100 text-indigo-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-indigo-900 dark:text-indigo-300">Personal Growth</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-orange-100 text-orange-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-orange-900 dark:text-orange-300">Flagged</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">2023-10-26</td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                                            <span className="material-symbols-outlined">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* <!-- Table Row 2 (Featured) --> */}
-                                <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-primary/10">
-                                    <td className="w-4 p-4">
-                                        <div className="flex items-center">
-                                            <input className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" id="checkbox-table-2" type="checkbox" />
-                                            <label className="sr-only" for="checkbox-table-2">checkbox</label>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900 dark:text-white">Finding Joy in Simplicity</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">by John Smith</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Mindfulness</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-teal-100 text-teal-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-teal-900 dark:text-teal-300">Featured</span>
-                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Reviewed</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">2023-10-25</td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                                            <span className="material-symbols-outlined">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* <!-- Table Row 3 --> */}
-                                <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-primary/10">
-                                    <td className="w-4 p-4">
-                                        <div className="flex items-center">
-                                            <input className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" id="checkbox-table-3" type="checkbox" />
-                                            <label className="sr-only" for="checkbox-table-3">checkbox</label>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900 dark:text-white">Career Paths in the Digital Age</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">by Alice Johnson</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-purple-100 text-purple-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-purple-900 dark:text-purple-300">Career</span>
-                                    </td>
-                                    <td className="px-6 py-4"></td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">2023-10-24</td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                                            <span className="material-symbols-outlined">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {/* <!-- Table Row 4 (Reviewed) --> */}
-                                <tr className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-primary/10">
-                                    <td className="w-4 p-4">
-                                        <div className="flex items-center">
-                                            <input className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:focus:ring-primary dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" id="checkbox-table-4" type="checkbox" />
-                                            <label className="sr-only" for="checkbox-table-4">checkbox</label>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-medium text-gray-900 dark:text-white">Healthy Eating on a Budget</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-400">by Mike Williams</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Health</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Reviewed</span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">2023-10-23</td>
-                                    <td className="px-6 py-4">
-                                        <button className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                                            <span className="material-symbols-outlined">more_vert</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    {/* <!-- Pagination --> */}
-                    <nav aria-label="Table navigation" className="flex items-center justify-between pt-4">
-                        <span className="text-sm font-normal text-gray-500 dark:text-gray-400">Showing <span className="font-semibold text-gray-900 dark:text-white">1-10</span> of <span className="font-semibold text-gray-900 dark:text-white">1000</span></span>
-                        <ul className="inline-flex -space-x-px text-sm h-8">
-                            <li>
-                                <a className="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-[#111814] dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" href="#">Previous</a>
-                            </li>
-                            <li>
-                                <a className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-[#111814] dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" href="#">1</a>
-                            </li>
-                            <li>
-                                <a aria-current="page" className="flex items-center justify-center px-3 h-8 text-primary border border-gray-300 bg-primary/20 hover:bg-primary/30 dark:border-gray-700 dark:bg-primary/20 dark:text-white" href="#">2</a>
-                            </li>
-                            <li>
-                                <a className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-[#111814] dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" href="#">3</a>
-                            </li>
-                            <li>
-                                <a className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-[#111814] dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
                 </div>
-            </main>
-        </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-4 mb-6 items-center">
+                    <div className="relative flex-1 min-w-[250px]">
+                        <IoSearch className="absolute left-3 top-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="w-full pl-10 h-12 border rounded-lg dark:bg-[#1a2c22] dark:border-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <select className="select h-12 border rounded-lg px-4 dark:bg-[#1a2c22] dark:text-white" onChange={(e) => setFilterCategory(e.target.value)}>
+                        <option value="">All Categories</option>
+                        <option value="Personal Growth">Personal Growth</option>
+                        <option value="Career">Career</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Health">Health</option>
+                        <option value="Relationships">Relationships</option>
+                    </select>
+                    <select className="select h-12 border rounded-lg px-4 dark:bg-[#1a2c22] dark:text-white" onChange={(e) => setFilterVisibility(e.target.value)}>
+                        <option value="">All Visibility</option>
+                        <option value="Public">Public</option>
+                        <option value="Private">Private</option>
+                    </select>
+                    <button onClick={() => setShowOnlyUnreviewed(!showOnlyUnreviewed)} className={`flex items-center gap-2 px-4 h-12 rounded-lg border transition-all ${showOnlyUnreviewed ? 'bg-orange-500 text-white' : 'bg-white dark:bg-[#1a2c22] dark:text-white'}`}>
+                        <IoFilter /> {showOnlyUnreviewed ? 'Unreviewed' : 'All Flags'}
+                    </button>
+                </div>
+
+                {/* Data Table */}
+                <div className="bg-white dark:bg-[#111814] border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50 dark:bg-[#1a2c22] text-xs uppercase text-gray-500">
+                            <tr>
+                                <th className="px-6 py-4">#</th>
+                                <th className="px-6 py-4">Lesson Details</th>
+                                <th className="px-6 py-4">Visibility</th>
+                                <th className="px-6 py-4">Current Status</th>
+                                <th className="px-6 py-4 text-center">Mod Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y dark:divide-gray-800">
+                            {filteredLessons.map((lesson, i) => (
+                                <tr key={lesson._id} className="hover:bg-gray-50 dark:hover:bg-[#16241c] transition-colors">
+                                    <td className="px-6 py-4 text-gray-400">{i + 1}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-gray-900 dark:text-white">{lesson.lessonInfo?.title}</div>
+                                        <div className="text-[11px] text-gray-500">By {lesson.author?.name} • {lesson.lessonInfo?.category}</div>
+                                    </td>
+                                    {/* Visibility Badge (Kept) */}
+                                    <td className="px-6 py-4">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${lesson.metadata?.visibility === 'Public' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                            {lesson.metadata?.visibility}
+                                        </span>
+                                    </td>
+                                    {/* SIMULTANEOUS STATUS BADGES */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-wrap gap-2 min-h-8 items-center">
+                                            {lesson.isFeatured && (
+                                                <span className="bg-[#0f1f18] text-[#22c55e] text-[11px] font-bold px-2 py-0.5 rounded border border-[#143328]">Featured</span>
+                                            )}
+                                            {lesson.isReviewed && (
+                                                <span className="bg-[#121b33] text-[#3b82f6] text-[11px] font-bold px-2 py-0.5 rounded border border-[#1a2b52]">Reviewed</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    {/* MOD ACTIONS */}
+                                    <td className="px-6 py-4">
+                                        <div className="flex justify-center gap-6 items-center">
+                                            <button
+                                                onClick={() => moderateMutation.mutate({ id: lesson._id, updates: { isFeatured: !lesson.isFeatured } })}
+                                                className={`transition-all transform hover:scale-110 ${lesson.isFeatured ? "text-[#22c55e]" : "text-gray-500"}`}
+                                            >
+                                                <IoStar size={24} />
+                                            </button>
+                                            <button
+                                                onClick={() => moderateMutation.mutate({ id: lesson._id, updates: { isReviewed: !lesson.isReviewed } })}
+                                                className={`transition-all transform hover:scale-110 ${lesson.isReviewed ? "text-[#3b82f6]" : "text-gray-500"}`}
+                                            >
+                                                <IoCheckmarkCircle size={26} />
+                                            </button>
+                                            <button onClick={() => handleDelete(lesson._id)} className="text-gray-300 hover:text-red-500">
+                                                <IoTrash size={22} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
     );
 };
 

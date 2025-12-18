@@ -10,8 +10,14 @@ import { MdOutlineFavorite, MdReport } from 'react-icons/md';
 import { HiUsers } from 'react-icons/hi';
 import { RiAdminFill } from 'react-icons/ri';
 import useAuth from '../Hooks/useAuth';
+import useRole from '../Hooks/useRole';
+import Loading from '../Components/Loading/Loading';
 
 const DashboardLayout = () => {
+
+    const { role, loading, roleLoading } = useRole()
+    // console.log(role);
+
 
     const { signOutUser } = useAuth();
 
@@ -20,7 +26,8 @@ const DashboardLayout = () => {
             .then()
             .catch()
     }
-
+    if (loading || roleLoading)
+        return <Loading />
     return (
         <div>
             <div className="drawer lg:drawer-open">
@@ -64,48 +71,54 @@ const DashboardLayout = () => {
                             </li>
 
                             {/* Admin links */}
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Users" to={'/dashboard/admin/manageusers'}>
-                                    <HiUsers size={20} />
-                                    <span className="is-drawer-close:hidden">Manage Users</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Lessons" to={'/dashboard/admin/managelessons'}>
-                                    <ImBook size={20} />
-                                    <span className="is-drawer-close:hidden">Manage Lessons</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Reported Lessons" to={'/dashboard/admin/reportedlessons'}>
-                                    <MdReport size={20} />
-                                    <span className="is-drawer-close:hidden">Reported Lessons</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Admin Profile" to={'/dashboard/admin/adminprofile'}>
-                                    <RiAdminFill size={20} />
-                                    <span className="is-drawer-close:hidden">Admin Profile</span></NavLink>
-                            </li>
+                            {
+                                role == 'admin' && <>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Users" to={'/dashboard/admin/manageusers'}>
+                                            <HiUsers size={20} />
+                                            <span className="is-drawer-close:hidden">Manage Users</span></NavLink>
+                                    </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Manage Lessons" to={'/dashboard/admin/managelessons'}>
+                                            <ImBook size={20} />
+                                            <span className="is-drawer-close:hidden">Manage Lessons</span></NavLink>
+                                    </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Reported Lessons" to={'/dashboard/admin/reportedlessons'}>
+                                            <MdReport size={20} />
+                                            <span className="is-drawer-close:hidden">Reported Lessons</span></NavLink>
+                                    </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Admin Profile" to={'/dashboard/admin/adminprofile'}>
+                                            <RiAdminFill size={20} />
+                                            <span className="is-drawer-close:hidden">Admin Profile</span></NavLink>
+                                    </li>
+                                </>
+                            }
 
                             {/* User links */}
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Add Lesson" to={'/dashboard/addlesson'}>
-                                    <ImBook size={20} />
-                                    <span className="is-drawer-close:hidden">Add Lesson</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Lessons" to={'/dashboard/mylessons'}>
-                                    <PiStudentBold size={20} />
-                                    <span className="is-drawer-close:hidden">My Lessons</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Favorites" to={'/dashboard/myfavorites'}>
-                                    <MdOutlineFavorite size={20} />
-                                    <span className="is-drawer-close:hidden">My Favorites</span></NavLink>
-                            </li>
-                            <li>
-                                <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Profile" to={'/dashboard/profile'}>
-                                    <ImProfile size={20} />
-                                    <span className="is-drawer-close:hidden">Profile</span></NavLink>
-                            </li>
+                            {
+                                role == 'user' && <> <li>
+                                    <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Add Lesson" to={'/dashboard/addlesson'}>
+                                        <ImBook size={20} />
+                                        <span className="is-drawer-close:hidden">Add Lesson</span></NavLink>
+                                </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Lessons" to={'/dashboard/mylessons'}>
+                                            <PiStudentBold size={20} />
+                                            <span className="is-drawer-close:hidden">My Lessons</span></NavLink>
+                                    </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="My Favorites" to={'/dashboard/myfavorites'}>
+                                            <MdOutlineFavorite size={20} />
+                                            <span className="is-drawer-close:hidden">My Favorites</span></NavLink>
+                                    </li>
+                                    <li>
+                                        <NavLink className="is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Profile" to={'/dashboard/profile'}>
+                                            <ImProfile size={20} />
+                                            <span className="is-drawer-close:hidden">Profile</span></NavLink>
+                                    </li></>
+                            }
 
                             {/* List item */}
                             <li>

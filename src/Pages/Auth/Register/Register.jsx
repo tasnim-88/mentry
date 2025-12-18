@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import Logo from '../../../Components/Logo/Logo';
 import { useForm } from 'react-hook-form';
 import useAuth from '../../../Hooks/useAuth';
-import useAxiosSecure from '../../../Hooks/useAxiosSecure';
 import axios from 'axios';
 import SocialLogin from '../SocialLogin/SocialLogin';
 import Theme from '../../../Components/Theme/Theme';
@@ -19,7 +18,6 @@ const Register = () => {
     } = useForm();
 
     const { registerUser, updateUser } = useAuth();
-    const axiosSecure = useAxiosSecure();
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -31,7 +29,7 @@ const Register = () => {
             // 1. Register User
             const result = await registerUser(data.email, data.password);
             console.log(result.user);
-            
+
 
             // 2. Upload image to imgbb
             const formData = new FormData();
@@ -47,12 +45,12 @@ const Register = () => {
                 email: data.email,
                 displayName: data.fullName,
                 photoURL: photoURL,
-                role:'user',
+                role: 'user',
                 isPremium: false,
                 createdAt: new Date(),
             };
 
-            await axiosSecure.post('/users', userInfo);
+            await axios.post('http://localhost:3000/users', userInfo);
 
             // 4. Update Firebase profile
             await updateUser({
@@ -66,6 +64,8 @@ const Register = () => {
             console.log("Registration Error:", err);
         }
     };
+
+
 
     return (
         <div className="min-h-screen bg-base-200 flex flex-col">

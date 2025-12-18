@@ -1,16 +1,71 @@
 import React from 'react';
-import { FaUserEdit } from 'react-icons/fa';
+import { FaUserEdit, FaUserMinus } from 'react-icons/fa';
 import { IoSearch } from 'react-icons/io5';
 import { RiDeleteBin6Fill } from 'react-icons/ri';
+import useAxiosSecure from '../../../Hooks/useAxiosSecure';
+import { useQuery } from '@tanstack/react-query';
+import Swal from 'sweetalert2';
+import { IoMdAdd } from 'react-icons/io';
 
 const ManageUsers = () => {
+    const { axiosSecure } = useAxiosSecure()
+
+    const { data: users = [], refetch } = useQuery({
+        queryKey: ['users'],
+        queryFn: async () => {
+            const res = await axiosSecure.get(`/users`)
+            return res.data
+        }
+    })
+
+    const handleMakeAdmin = user => {
+        const roleInfo = { role: 'admin' }
+        axiosSecure.patch(`/users/${user._id}/role`, roleInfo)
+            .then(res => {
+                if (res.data.modifiedCount) {
+                    refetch()
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "success",
+                        title: `${user.displayName} marked as an admin.`,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            }).catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: "error",
+                    title: "Permission Denied",
+                    text: "You do not have administrative rights to perform this action.",
+                });
+            });
+    }
+
+    const handleRemoveAdmin = user => {
+        const roleInfo = { role: 'user' }
+        axiosSecure.patch(`/users/${user._id}/role`, roleInfo)
+            .then(res => {
+                if (res.data.modifiedCount) {
+                    refetch()
+                    Swal.fire({
+                        position: "top-end",
+                        icon: "success",
+                        title: `${user.displayName} removed as an admin`,
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                }
+            })
+    }
+
     return (
         <div>
             <main className="flex flex-1 flex-col p-6">
                 <div className="flex flex-wrap justify-between gap-4 items-center mb-6">
                     <p className="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">Manage Users</p>
                     <button className="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer overflow-hidden rounded-lg h-10 px-4 bg-primary text-[#111814] text-sm font-bold leading-normal tracking-[0.015em]">
-                        <span className="material-symbols-outlined">add</span>
+                        <IoMdAdd size={20} />
                         <span className="truncate">Add New User</span>
                     </button>
                 </div>
@@ -43,15 +98,7 @@ const ManageUsers = () => {
                             </label>
 
                         </div>
-                        {/* <div className="flex gap-3 flex-wrap items-center">
-                            <button className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-gray-100 dark:bg-[#28392f] px-4 border border-gray-300 dark:border-[#3b5445]">
-                                <p className="text-gray-700 dark:text-white text-sm font-medium leading-normal">Role: All</p>
-                            </button>
-                            <button className="flex h-12 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-gray-100 dark:bg-[#28392f] px-4 border border-gray-300 dark:border-[#3b5445]">
-                                <p className="text-gray-700 dark:text-white text-sm font-medium leading-normal">Status: Active</p>
 
-                            </button>
-                        </div> */}
                     </div>
                     <div className="w-full @container">
                         <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-[#3b5445] bg-background-light dark:bg-[#111814]">
@@ -65,27 +112,40 @@ const ManageUsers = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr className="border-t border-gray-200 dark:border-t-[#3b5445]">
-                                        <td className="h-[72px] px-4 py-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-[url('https://lh3.googleusercontent.com/aida-public/AB6AXuBVNMLDhmlQjDaWXq7WI1s1EzIOTsPYkfrt1Ov3lhsfIgQv0Xvm3QB5FjY0NdW9Gg9KceL0oqjovkH9R6paQUBvQzYrbZTP3WzailPTnBCv1-lyIpfsOzLOlrdWYZgDlzTnLLJ1XJw6hx8vInQGh1SpSBrFsX9NCa6ID2aTKyM1cIkgcEoKeQSvunlZa2m7t1euCouLUo2GaLYe6QQBKq9Muc9uVNzIvxKNcxI2BsOYvWi3E8UHv7EKgJ-OV6rPhh-YYq5QfQMV7FU')]" data-alt="Profile picture of Eleanor Vance"></div>
-                                                <div className="flex flex-col">
-                                                    <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">Eleanor Vance</p>
-                                                    <p className="text-gray-500 dark:text-[#9db9a8] text-sm font-normal leading-normal">eleanor@example.com</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="h-[72px] px-4 py-2">
-                                            <span className="inline-flex items-center rounded-full bg-primary/20 dark:bg-[#28392f] px-3 py-1 text-xs font-medium text-primary dark:text-white">Admin</span>
-                                        </td>
-                                        <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-[#9db9a8] text-sm">124</td>
-                                        <td className="h-[72px] px-4 py-2">
-                                            <div className="flex gap-2">
-                                                <button className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-[#28392f] text-gray-500 dark:text-[#9db9a8]"><span className="material-symbols-outlined text-base"><FaUserEdit size={20}/></span></button>
-                                                <button className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-[#28392f] text-gray-500 dark:text-[#9db9a8]"><span className="material-symbols-outlined text-base"><RiDeleteBin6Fill size={20}/></span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    {
+                                        users.map(u =>
+                                            <tr key={u._id} className="border-t border-gray-200 dark:border-t-[#3b5445]">
+                                                <td className="h-[72px] px-4 py-2">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-15 ">
+                                                            <img src={u.photoURL} alt="" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <p className="text-gray-900 dark:text-white text-sm font-medium leading-normal">{u.displayName}</p>
+                                                            <p className="text-gray-500 dark:text-[#9db9a8] text-sm font-normal leading-normal">{u.email}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="h-[72px] px-4 py-2">
+                                                    <span className="inline-flex items-center rounded-full bg-primary/20 dark:bg-[#28392f] px-3 py-1 text-xs font-medium text-primary dark:text-white">{u.role}</span>
+                                                </td>
+                                                <td className="h-[72px] px-4 py-2 text-gray-500 dark:text-[#9db9a8] text-sm">{u.totalLessons}</td>
+                                                <td className="h-[72px] px-4 py-2">
+                                                    <div className="flex gap-2">
+                                                        {
+                                                            u.role === 'admin' ?
+                                                                <button onClick={() => handleRemoveAdmin(u)} className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-[#28392f] text-gray-500 dark:text-[#9db9a8]"><span className="material-symbols-outlined text-base"><FaUserMinus title='Remove admin' size={20} /></span></button>
+                                                                :
+                                                                <button onClick={() => handleMakeAdmin(u)} className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-[#28392f] text-gray-500 dark:text-[#9db9a8]"><span className="material-symbols-outlined text-base"><FaUserEdit title='Make admin' size={20} /></span></button>
+                                                        }
+
+
+                                                        <button className="flex items-center justify-center size-8 rounded-md hover:bg-gray-100 dark:hover:bg-[#28392f] text-gray-500 dark:text-[#9db9a8]"><span className="material-symbols-outlined text-base"><RiDeleteBin6Fill title='Remove user' size={20} /></span></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    }
 
                                 </tbody>
                             </table>

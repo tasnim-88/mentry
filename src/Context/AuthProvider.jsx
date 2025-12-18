@@ -42,7 +42,7 @@ const AuthProvider = ({ children }) => {
         return signOut(auth);
     };
 
-    const updateUser = async(profile) => {
+    const updateUser = async (profile) => {
         await updateProfile(auth.currentUser, profile);
 
         await auth.currentUser.reload();

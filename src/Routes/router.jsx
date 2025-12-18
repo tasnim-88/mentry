@@ -24,6 +24,7 @@ import PaymentSuccess from "../Pages/Payment/PaymentSuccess";
 import PaymentCancelled from "../Pages/Payment/PaymentCancelled";
 import PrivateRoute from "./PrivateRoute";
 import FreeOnlyRoute from "./FreeOnlyRoute";
+import AdminRoute from "./AdminRoute";
 
 export const router = createBrowserRouter([
     {
@@ -31,17 +32,17 @@ export const router = createBrowserRouter([
         Component: RootLayout,
         children: [
             { index: true, Component: Home },
-            { 
-                path: '/publiclessons', 
+            {
+                path: '/publiclessons',
                 Component: PublicLessons
-                   
+
             },
-            { 
-                path: '/lessondetails/:id', 
-                element: 
+            {
+                path: '/lessondetails/:id',
+                element:
                     <PrivateRoute>
                         <LessonDetails />
-                    </PrivateRoute> 
+                    </PrivateRoute>
             },
             {
                 path: '/pricing',
@@ -55,7 +56,7 @@ export const router = createBrowserRouter([
             { path: '/payment/success', Component: PaymentSuccess },
             { path: '/payment/cancel', Component: PaymentCancelled },
             {
-                path: '/updatelesson/:id', 
+                path: '/updatelesson/:id',
                 element:
                     <PrivateRoute>
                         <UpdateLesson />
@@ -69,10 +70,10 @@ export const router = createBrowserRouter([
         children: [
             { index: true, Component: DashboardHome },
             // Admin routes
-            { path: 'admin/manageusers', Component: ManageUsers },
-            { path: 'admin/managelessons', Component: ManageLessons },
-            { path: 'admin/reportedlessons', Component: ReportedLessons },
-            { path: 'admin/adminprofile', Component: AdminProfile },
+            { path: 'admin/manageusers', element: <AdminRoute><ManageUsers></ManageUsers></AdminRoute> },
+            { path: 'admin/managelessons', element: <AdminRoute><ManageLessons></ManageLessons></AdminRoute> },
+            { path: 'admin/reportedlessons', element: <AdminRoute><ReportedLessons></ReportedLessons></AdminRoute> },
+            { path: 'admin/adminprofile', element: <AdminRoute><AdminProfile></AdminProfile></AdminRoute> },
             // User routes
             { path: 'addlesson', Component: AddLesson },
             { path: 'mylessons', Component: MyLessons },
@@ -80,7 +81,6 @@ export const router = createBrowserRouter([
             { path: 'profile', Component: UserProfile },
         ]
     },
-
     {
         path: '/',
         Component: AuthLayout,
@@ -95,6 +95,7 @@ export const router = createBrowserRouter([
             }
         ]
     },
+
     {
         path: '/*', Component: Error404
     }

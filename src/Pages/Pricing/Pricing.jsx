@@ -6,7 +6,7 @@ import useAxiosSecure from "../../Hooks/useAxiosSecure";
 const Pricing = () => {
 
     const { user } = useAuth();
-    const axiosSecure = useAxiosSecure();
+    const { axiosSecure } = useAxiosSecure();
 
     if (user?.isPremium) {
         return <Navigate to="/" replace />;
