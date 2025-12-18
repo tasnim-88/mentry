@@ -2,6 +2,7 @@ import React from "react";
 import { MdCheckCircle, MdCancel } from "react-icons/md";
 import useAuth from "../../Hooks/useAuth";
 import useAxiosSecure from "../../Hooks/useAxiosSecure";
+import { Navigate } from "react-router";
 
 const Pricing = () => {
 

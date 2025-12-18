@@ -10,7 +10,6 @@ import {
 import React, { useEffect, useState } from 'react';
 import { auth } from '../Firebase/firebase.init';
 import { AuthContext } from './AuthContext';
-// import useAxiosSecure from '../Hooks/useAxiosSecure';
 import axios from 'axios';
 
 const googleProvider = new GoogleAuthProvider();
@@ -19,7 +18,7 @@ const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // const axiosSecure = useAxiosSecure();
+
 
     // Auth methods
     const registerUser = (email, password) => {
@@ -42,6 +41,30 @@ const AuthProvider = ({ children }) => {
         return signOut(auth);
     };
 
+    const refreshUser = async () => {
+        if (!auth.currentUser) return;
+
+        try {
+            setLoading(true);
+            // Force refresh the Firebase Token to get latest claims if any
+            const token = await auth.currentUser.getIdToken(true);
+
+            const res = await axios.get('http://localhost:3000/users/me', {
+                headers: { authorization: `Bearer ${token}` },
+            });
+
+            setUser({
+                ...auth.currentUser,
+                isPremium: res.data.isPremium,
+                role: res.data.role,
+            });
+        } catch (err) {
+            console.error('Refresh sync failed', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateUser = async (profile) => {
         await updateProfile(auth.currentUser, profile);
 
@@ -53,9 +76,9 @@ const AuthProvider = ({ children }) => {
         })
     };
 
-    /**
-     * 1️⃣ Firebase auth observer
-     */
+
+    //   Firebase auth observer
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (!currentUser) {
@@ -74,6 +97,7 @@ const AuthProvider = ({ children }) => {
                         authorization: `Bearer ${token}`,
                     },
                 });
+                console.log("Database Response:", res.data)
 
                 setUser({
                     ...currentUser,
@@ -100,6 +124,7 @@ const AuthProvider = ({ children }) => {
         googleLogin,
         signOutUser,
         updateUser,
+        refreshUser
     };
 
     return (

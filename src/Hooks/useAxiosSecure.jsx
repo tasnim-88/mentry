@@ -38,7 +38,7 @@ const useAxiosSecure = () => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         const token = await user.getIdToken();
-        localStorage.setItem('token', token); // store token for axios interceptor
+        localStorage.setItem('token', token);
       } else {
         localStorage.removeItem('token');
         navigate('/login', { replace: true });
