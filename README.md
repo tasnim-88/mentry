@@ -175,13 +175,6 @@ Stripe Checkout is integrated securely, and user premium status is always verifi
 
 ---
 
-## 🛠️ GitHub Commit Requirements
-
-* ✅ Minimum **20 meaningful commits** on the client side
-* ✅ Minimum **12 meaningful commits** on the server side
-
----
-
 ## 📌 Resources Used
 
 * [https://uiverse.io/](https://uiverse.io/)
